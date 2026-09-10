@@ -1399,8 +1399,25 @@
         document.getElementById('connectionStatus').innerText = "Offline Mode";
       });
 
+      // 1. Auto-pull every time the phone is unlocked or switched back to the app
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && navigator.onLine) {
+          pushPendingToSupabase();
+          pullSupabaseDeltas(false);
+        }
+      });
+      window.addEventListener('focus', () => {
+        if (navigator.onLine) {
+          pullSupabaseDeltas(false);
+        }
+      });
+
+      // 2. Periodic bidirectional sync every 30 seconds
       setInterval(() => {
-        if (navigator.onLine) pushPendingToSupabase();
+        if (navigator.onLine) {
+          pushPendingToSupabase();
+          pullSupabaseDeltas(false);
+        }
       }, 30000);
 
     } catch(err) {
