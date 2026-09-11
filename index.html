@@ -819,6 +819,7 @@
       a.createIndex("synced", "synced", { unique: false });
     }
   };
+
   req.onsuccess = function(e) {
     db = e.target.result;
     document.getElementById('connectionStatus').innerText = "Local DB Active";
@@ -828,6 +829,8 @@
     updatePatientCache();
     renderQueue();
     initSupabase();
+    // Force pull deltas right after DB is confirmed active
+    pullSupabaseDeltas(false);
   };
 
   function switchMobileTab(tabId, btn) {
@@ -1510,9 +1513,22 @@
   }
 
   async function pullSupabaseDeltas(userAlert = false) {
-    pushPendingToSupabase();
-    if (!supabaseClient || !db) return;
+    // 1. Wait up to 3 seconds for IndexedDB to finish initializing if app just opened
+    if (!db) {
+      let retries = 0;
+      while (!db && retries < 15) {
+        await new Promise(r => setTimeout(r, 200));
+        retries++;
+      }
+    }
+    if (!supabaseClient || !db) {
+      if (userAlert) alert("Database or Supabase is not ready yet. Please check settings.");
+      return;
+    }
 
+    pushPendingToSupabase().catch(console.warn);
+
+    // 2. Safely verify if local database has patient rows
     const localPatientCount = await new Promise((resolve) => {
       try {
         const tx = db.transaction(["patients"], "readonly");
@@ -1525,11 +1541,13 @@
     });
 
     let lastSync = parseInt(localStorage.getItem('floca_mobile_last_sync') || '0', 10);
-    if (localPatientCount === 0) lastSync = 0;
+    // If local storage is empty, force full sync from epoch 0
+    if (localPatientCount === 0) {
+      console.log("Empty local storage detected. Pulling full cloud database...");
+      lastSync = 0;
+    }
 
-    const now = Date.now();
     const PAGE_SIZE = 1000;
-
     async function fetchAllRows(tableName) {
       let results = [];
       let from = 0;
@@ -1554,35 +1572,81 @@
     }
 
     try {
+      // 3. Pull and store Patients
       const pData = await fetchAllRows('patients');
       if (pData.length > 0) {
-        const tx = db.transaction(["patients"], "readwrite");
-        const s = tx.objectStore("patients");
-        pData.forEach(p => s.put({
-          patientId: p.patient_id, name: p.name, sex: p.sex, birthYear: p.birth_year,
-          age: p.age, pmh: p.pmh, drugAllergy: p.drug_allergy, currentMeds: p.current_meds,
-          doctorNote: p.doctor_note, phone: p.phone, address: p.address, updatedAt: p.updated_at, synced: 1
-        }));
-        await new Promise(r => tx.oncomplete = r);
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(["patients"], "readwrite");
+          const s = tx.objectStore("patients");
+          pData.forEach(p => {
+            if (!p.patient_id) return;
+            s.put({
+              patientId: String(p.patient_id).trim(),
+              name: p.name || "",
+              sex: p.sex || "Male",
+              birthYear: String(p.birth_year || ""),
+              age: String(p.age || ""),
+              pmh: p.pmh || "NR",
+              drugAllergy: p.drug_allergy || "NKDA",
+              currentMeds: p.current_meds || "NR",
+              doctorNote: p.doctor_note || "NR",
+              phone: p.phone || "",
+              address: p.address || "",
+              updatedAt: Number(p.updated_at) || Date.now(),
+              synced: 1
+            });
+          });
+          tx.oncomplete = () => resolve();
+          tx.onerror = e => reject(e);
+        });
         updatePatientCache();
       }
 
+      // 4. Pull and store Appointments
       const aData = await fetchAllRows('appointments');
       if (aData.length > 0) {
-        const tx = db.transaction(["appointments"], "readwrite");
-        const s = tx.objectStore("appointments");
-        aData.forEach(a => s.put({
-          appointmentId: a.appointment_id, patientId: a.patient_id, patientName: a.patient_name,
-          sex: a.sex, date: a.date, chiefComplaint: a.chief_complaint, history: a.history,
-          bp: a.bp, pr: a.pr, spo2: a.spo2, examinations: a.examinations, investigations: a.investigations,
-          diagnosis: a.diagnosis, treatments: a.treatments, followUp: a.follow_up,
-          doctorNote: a.doctor_note, updatedAt: a.updated_at, synced: 1
-        }));
-        await new Promise(r => tx.oncomplete = r);
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(["appointments"], "readwrite");
+          const s = tx.objectStore("appointments");
+          aData.forEach(a => {
+            if (!a.appointment_id) return;
+            s.put({
+              appointmentId: String(a.appointment_id).trim(),
+              patientId: String(a.patient_id || "").trim(),
+              patientName: a.patient_name || "",
+              sex: a.sex || "Male",
+              date: a.date || "",
+              chiefComplaint: a.chief_complaint || "",
+              history: a.history || "",
+              bp: a.bp || "",
+              pr: a.pr || "",
+              spo2: a.spo2 || "",
+              examinations: a.examinations || "",
+              investigations: a.investigations || "NR",
+              diagnosis: a.diagnosis || "",
+              treatments: a.treatments || "",
+              followUp: a.follow_up || "PRN",
+              doctorNote: a.doctor_note || "NR",
+              updatedAt: Number(a.updated_at) || Date.now(),
+              synced: 1
+            });
+          });
+          tx.oncomplete = () => resolve();
+          tx.onerror = e => reject(e);
+        });
         renderQueue();
+        const activePid = document.getElementById('pId')?.value;
+        if (activePid && typeof loadPatientVisitsIntoDropdown === 'function') {
+          loadPatientVisitsIntoDropdown(activePid);
+        }
       }
 
-      const { data: sData } = await supabaseClient.from('clinic_settings').select('*').gt('updated_at', lastSync);
+      // 5. Pull Clinic Settings
+      const { data: sData } = await supabaseClient
+        .from('clinic_settings')
+        .select('*')
+        .gt('updated_at', lastSync);
+
       if (sData && sData.length > 0) {
         sData.forEach(s => {
           if (s.setting_key === 'clinic_profile') {
@@ -1593,11 +1657,15 @@
         });
       }
 
-      localStorage.setItem('floca_mobile_last_sync', now.toString());
-      if (userAlert) alert(`⚡ Synced: ${pData.length} Patients, ${aData.length} Visits`);
-    } catch(e) {
-      console.warn("Pull error:", e);
-      if (userAlert) alert(`❌ Sync failed: ${e.message}`);
+      // Only advance timestamp if fetch succeeded
+      localStorage.setItem('floca_mobile_last_sync', Date.now().toString());
+
+      if (userAlert) {
+        alert(`⚡ Synced: ${pData.length} Patients, ${aData.length} Visits`);
+      }
+    } catch (e) {
+      console.error("Delta pull error:", e);
+      if (userAlert) alert(`❌ Sync failed: ${e.message || e}`);
     }
   }
 
