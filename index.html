@@ -1431,6 +1431,9 @@
     isSyncingOutbox = true;
 
     try {
+      const uploadNow = Date.now();
+
+      // 1. Scan for unsynced patients
       const txP = db.transaction(["patients"], "readonly");
       const unsyncedP = await new Promise(r => {
         const q = txP.objectStore("patients").getAll();
@@ -1439,19 +1442,30 @@
       });
 
       for (const p of unsyncedP) {
-        const { error } = await supabaseClient.from('patients').upsert({
-          patient_id: p.patientId, name: p.name, sex: p.sex, birth_year: p.birthYear,
-          age: p.age, pmh: p.pmh, drug_allergy: p.drugAllergy, currentMeds: p.currentMeds,
-          doctor_note: p.doctorNote, phone: p.phone, address: p.address,
-          updated_at: typeof p.updatedAt === 'number' ? p.updatedAt : Date.now()
-        });
+        const payload = {
+          patient_id: String(p.patientId).trim(),
+          name: p.name || "",
+          sex: p.sex || "Male",
+          birth_year: String(p.birthYear || ""),
+          age: String(p.age || ""),
+          pmh: p.pmh || "NR",
+          drug_allergy: p.drugAllergy || "NKDA",
+          current_meds: p.currentMeds || "NR",
+          doctor_note: p.doctorNote || "NR",
+          phone: p.phone || "",
+          address: p.address || "",
+          updated_at: uploadNow
+        };
+        const { error } = await supabaseClient.from('patients').upsert(payload);
         if (!error) {
           p.synced = 1;
+          p.updatedAt = uploadNow;
           const writeTx = db.transaction(["patients"], "readwrite");
           writeTx.objectStore("patients").put(p);
         }
       }
 
+      // 2. Scan for unsynced appointments
       const txA = db.transaction(["appointments"], "readonly");
       const unsyncedA = await new Promise(r => {
         const q = txA.objectStore("appointments").getAll();
@@ -1460,15 +1474,30 @@
       });
 
       for (const a of unsyncedA) {
-        const { error } = await supabaseClient.from('appointments').upsert({
-          appointment_id: a.appointmentId, patient_id: a.patientId, patient_name: a.patientName || "",
-          sex: a.sex || "", date: a.date, chief_complaint: a.chiefComplaint, history: a.history,
-          bp: a.bp, pr: a.pr, spo2: a.spo2, examinations: a.examinations, investigations: a.investigations,
-          diagnosis: a.diagnosis, treatments: a.treatments, follow_up: a.followUp,
-          doctor_note: a.doctorNote, updated_at: typeof a.updatedAt === 'number' ? a.updatedAt : Date.now()
-        });
+        const pInfo = globalPatientCache[a.patientId] || {};
+        const payload = {
+          appointment_id: String(a.appointmentId).trim(),
+          patient_id: String(a.patientId).trim(),
+          patient_name: pInfo.name || a.patientName || "",
+          sex: pInfo.sex || a.sex || "",
+          date: a.date || formatDate(new Date()),
+          chief_complaint: a.chiefComplaint || "Consultation",
+          history: a.history || "",
+          bp: a.bp || "",
+          pr: a.pr || "",
+          spo2: a.spo2 || "",
+          examinations: a.examinations || "",
+          investigations: a.investigations || "NR",
+          diagnosis: a.diagnosis || a.chiefComplaint || "",
+          treatments: a.treatments || "",
+          follow_up: a.followUp || "PRN",
+          doctor_note: a.doctorNote || "NR",
+          updated_at: uploadNow
+        };
+        const { error } = await supabaseClient.from('appointments').upsert(payload);
         if (!error) {
           a.synced = 1;
+          a.updatedAt = uploadNow;
           const writeTx = db.transaction(["appointments"], "readwrite");
           writeTx.objectStore("appointments").put(a);
         }
