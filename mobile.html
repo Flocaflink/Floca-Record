@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>MD Clinic Mobile EMR</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- SUPABASE JS CLIENT SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Segoe UI', 'Padauk', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f1f5f9;
+      color: #1e293b;
+      padding-bottom: 75px;
+    }
+
+    /* Fixed App Header */
+    .mobile-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #008055;
+      color: white;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    }
+    .mobile-header h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-icons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .icon-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    /* Network Badge */
+    .status-strip {
+      background: #e2e8f0;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #475569;
+    }
+    .badge-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #94a3b8;
+      margin-right: 4px;
+    }
+
+    /* Tab Containers */
+    .tab-view { display: none; padding: 12px; }
+    .tab-view.active { display: block; }
+
+    /* Cards & Forms */
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border: 1px solid #e2e8f0;
+    }
+    .card-title {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: #008055;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+      display: block;
+      margin-top: 8px;
+    }
+    .required { color: #e11d48; font-weight: bold; }
+    
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 4px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 15px;
+      color: #0f172a;
+      background: #fff;
+    }
+    textarea { height: 60px; font-family: inherit; }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #008055;
+      box-shadow: 0 0 0 2px rgba(0,128,85,0.15);
+    }
+
+    .row-2 { display: flex; gap: 8px; }
+    .row-2 > div { flex: 1; }
+
+    /* Quick Pick Chips Box */
+    .chip-container {
+      margin-top: 8px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px;
+    }
+    .category-scroll {
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      border-bottom: 1px dashed #cbd5e1;
+      margin-bottom: 6px;
+    }
+    .category-chip {
+      padding: 3px 8px;
+      font-size: 11px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .category-chip.active {
+      background: #008055;
+      color: white;
+      border-color: #008055;
+      font-weight: bold;
+    }
+    .drug-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      max-height: 90px;
+      overflow-y: auto;
+    }
+    .drug-chip {
+      background: #e8f5e9;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Action Buttons */
+    .btn {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .btn-green { background: #008055; color: white; }
+    .btn-blue { background: #0284c7; color: white; }
+    .btn-orange { background: #d97706; color: white; }
+
+    /* Alert Boxes */
+    .alert-box {
+      display: none;
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 600;
+    }
+    .alert-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert-warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+
+    /* Patient List Items */
+    .patient-item {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .patient-item:active { background: #f8fafc; }
+    .patient-item-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .patient-item-sub {
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    /* Fixed Bottom Navigation Bar */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: white;
+      display: flex;
+      border-top: 1px solid #cbd5e1;
+      z-index: 100;
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+    }
+    .nav-btn {
+      flex: 1;
+      border: none;
+      background: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      padding: 0;
+    }
+    .nav-btn span.icon { font-size: 18px; margin-bottom: 2px; }
+    .nav-btn.active { color: #008055; }
+
+    /* Modals */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.6); z-index: 200; justify-content: center; align-items: flex-end;
+    }
+    .modal-sheet {
+      background: white; width: 100%; max-height: 85vh; border-radius: 14px 14px 0 0;
+      padding: 16px; overflow-y: auto;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;
+    }
+
+    /* Print Templates (Match Desktop Layout) */
+    #printPatientCard, #printPrescription { display: none; }
+
+    @media print {
+      body { background-color: white; padding: 0; color: #000; font-family: 'Segoe UI', 'Padauk', Arial, sans-serif; }
+      .mobile-header, .status-strip, .bottom-nav, .tab-view, .btn, .modal-overlay, #geminiAssistantCardMobile { display: none !important; }
+      
+      body.printing-card #printPatientCard { display: block !important; }
+      body.printing-rx #printPrescription { display: block !important; }
+
+      .print-page { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; box-sizing: border-box; }
+
+      body.printing-card #printPatientCard { width: 100%; max-width: 750px; margin: 0 auto; padding: 30px 25px; box-sizing: border-box; }
+      .card-header-single { text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+      .clinic-logo-img { max-width: 200px; height: auto; margin-bottom: 12px; }
+      .clinic-name-myanmar { font-family: 'Padauk', sans-serif !important; font-size: 24px !important; font-weight: bold; margin-bottom: 8px; line-height: 1.5; }
+      .clinic-address-text, .clinic-hours-text { font-family: 'Padauk', sans-serif !important; font-size: 17px !important; line-height: 1.8 !important; color: #111; font-weight: 500; }
+      
+      .card-services-single { margin: 20px 0 20px 0; font-size: 14px; line-height: 1.8; }
+      .services-title { font-family: 'Padauk', sans-serif !important; font-weight: bold; font-size: 18px !important; margin-bottom: 15px; text-decoration: underline; text-align: center; }
+      .services-list-single { list-style-type: square; padding-left: 30px; margin: 0 auto; width: 95%; }
+      .services-list-single li { font-family: 'Padauk', sans-serif !important; font-size: 16px !important; line-height: 1.8; }
+
+      .patient-reg-box-single { border: 2px solid #000; padding: 20px 25px; border-radius: 6px; margin-top: 20px; page-break-inside: avoid; }
+      .reg-title { font-family: 'Padauk', sans-serif !important; text-align: center; font-weight: bold; font-size: 20px !important; margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 8px; }
+      .reg-single-col { display: flex; flex-direction: column; gap: 12px; font-size: 16px; line-height: 1.8; }
+      .reg-footer-note { font-family: 'Padauk', sans-serif !important; text-align: center; margin-top: 20px; font-size: 14px; font-weight: bold; font-style: italic; }
+      
+      .print-page-break { page-break-before: always; break-before: page; }
+      
+      .history-summary-box { margin-top: 25px; display: flex; flex-direction: column; gap: 20px; }
+      .history-item { border: 1px solid #000; border-radius: 6px; padding: 15px 20px; background-color: #fff; }
+      .history-item.allergy-item { border: 2px solid #c00; }
+      .history-label { font-family: 'Padauk', 'Segoe UI', sans-serif !important; font-weight: bold; font-size: 17px !important; border-bottom: 1px dashed #888; padding-bottom: 6px; margin-bottom: 8px; }
+      .history-value { font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+
+      .rx-header { border-bottom: 2px solid #008055; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; }
+      .rx-header div div:nth-child(2) { font-family: 'Padauk', 'Segoe UI', sans-serif !important; font-size: 15px !important; line-height: 1.6 !important; }
+      .rx-patient-box { border: 1px solid #ccc; padding: 10px; font-size: 14px; margin-bottom: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; background: #fafafa; font-family: 'Padauk', 'Segoe UI', sans-serif !important; }
+      .rx-section-title { font-size: 14px; font-weight: bold; color: #008055; border-bottom: 1px solid #ddd; margin-top: 15px; padding-bottom: 3px; }
+      
+      .rx-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+      .rx-table th, .rx-table td { border: 1px solid #bbb; padding: 6px 10px; text-align: left; }
+      .rx-table th { background-color: #f0f0f0; color: #000000; }
+
+      .rx-footer { margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 12px; }
+      .sig-line { border-top: 1px dashed #444; width: 180px; text-align: center; padding-top: 5px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="mobile-header">
+    <h1 id="mobileAppHeader">🩺 MD Clinic Mobile</h1>
+    <div class="header-icons">
+      <button class="icon-btn" onclick="pullSupabaseDeltas(true)" title="Sync Cloud">⚡</button>
+      <button class="icon-btn" onclick="openSettingsModal()" title="Settings">⚙️</button>
+    </div>
+  </div>
+
+  <!-- STATUS STRIP -->
+  <div class="status-strip">
+    <div id="connectionStatus"><span class="badge-dot" id="syncDot"></span> Initializing...</div>
+    <div id="todayCountBadge">Today: 0</div>
+  </div>
+
+  <!-- TAB 0: TODAY'S QUEUE -->
+  <div id="queueTab" class="tab-view active">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <span style="font-weight:700; font-size:13px; color:#475569;">Active Patient Queue</span>
+      <button class="btn btn-green" style="width:auto; padding:6px 12px; font-size:12px; margin:0;" onclick="startNewPatient()">
+        ➕ New Patient
+      </button>
+    </div>
+    <div id="queueList">Loading appointments...</div>
+  </div>
+
+  <!-- TAB 1: SEARCH DATABASE -->
+  <div id="searchTab" class="tab-view">
+    <input type="text" id="mobileSearchInput" placeholder="🔍 Search name, phone, PMH..." oninput="searchPatientsMobile()">
+    <div id="patientSearchResults" style="margin-top: 10px;">
+      <div style="text-align:center; color:#94a3b8; padding:20px; font-size:13px;">Type to search patient database...</div>
+    </div>
+  </div>
+
+  <!-- TAB 2: CONSULTATION & ENTRY -->
+  <div id="consultTab" class="tab-view">
+    
+    <!-- Patient Demographic Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>1. Patient Profile</span>
+        <button type="button" style="background:none; border:none; color:#0284c7; font-size:11px; font-weight:700; cursor:pointer;" onclick="startNewPatient()">➕ New ID</button>
+      </div>
+
+      <div class="row-2">
+        <div>
+          <label>ID <span class="required">*</span></label>
+          <input type="text" id="pId" readonly style="background:#f1f5f9; font-weight:bold;">
+        </div>
+        <div>
+          <label>Age <span class="required">*</span></label>
+          <input type="number" id="pAge" placeholder="28">
+        </div>
+      </div>
+
+      <label>Full Name <span class="required">*</span></label>
+      <input type="text" id="pName" placeholder="Patient Name">
+
+      <div class="row-2">
+        <div>
+          <label>Sex</label>
+          <select id="pSex">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+        <div>
+          <label>Phone Number</label>
+          <input type="text" id="pPhone" placeholder="09...">
+        </div>
+      </div>
+
+      <label>Township / Address</label>
+      <input type="text" id="pAddress" placeholder="Yangon">
+
+      <label>Past Medical History (PMH)</label>
+      <input type="text" id="pPmh" value="NR">
+
+      <label>Drug Allergy (DH)</label>
+      <input type="text" id="pAllergy" value="NKDA" style="color:#e11d48; font-weight:bold;" oninput="runSafetyChecks()">
+
+      <label>Current Medications</label>
+      <input type="text" id="pCurrentMeds" value="NR" oninput="runSafetyChecks()">
+
+      <label>Doctor's Private Note</label>
+      <input type="text" id="pDocNote" value="NR">
+
+      <div class="row-2">
+        <button class="btn btn-green" onclick="savePatientRecord()">💾 Save Profile</button>
+        <button class="btn btn-blue" onclick="printPatientCardMobile()">📄 Print Card</button>
+      </div>
+
+      <!-- GEMINI CLINICAL SAFETY AUDITOR -->
+      <div id="geminiAssistantCardMobile" style="margin-top:15px; border:1px solid #1a73e8; border-radius:6px; padding:10px; background:#f8fafe;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="font-weight:bold; color:#1a73e8; font-size:12px;">🛡️ Gemini Safety Auditor</span>
+          <button type="button" style="background:none; border:1px solid #1a73e8; color:#1a73e8; padding:2px 6px; border-radius:4px; font-size:10px; cursor:pointer;" onclick="promptForGeminiKey()">🔑 Key</button>
+        </div>
+        <button type="button" class="btn btn-blue" style="margin-top:0; padding:8px; font-size:12px;" onclick="runMobileSafetyAudit()">
+          ⚡ Run Safety Audit (Cross-Check Case)
+        </button>
+        <div id="geminiAuditOutputMobile" style="display:none; margin-top:8px; padding:8px; border-radius:4px; background:#fff; border:1px solid #cbd5e1; font-size:11.5px; line-height:1.4; max-height:180px; overflow-y:auto; white-space:pre-wrap;"></div>
+      </div>
+    </div>
+
+    <!-- Appointment & Treatment Card with Historical Visit Dropdown -->
+    <div class="card">
+      <div class="card-title">
+        <span>2. Clinical Visit History</span>
+        <button type="button" style="background:none; border:none; color:#0284c7; font-size:11px; font-weight:700; cursor:pointer;" onclick="forceNewAppointmentId()">➕ New Visit</button>
+      </div>
+
+      <!-- INTERACTIVE VISIT EXPLORER DROPDOWN -->
+      <label>Explore Past Visits for Patient:</label>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <select id="aVisitSelect" style="font-weight: 600; color: #008055; flex: 1;" onchange="onSelectVisitDropdown(this.value)">
+          <option value="">(No visits loaded)</option>
+        </select>
+        <button type="button" class="icon-btn" style="background:#e2e8f0; color:#334155; width:36px; height:36px; border-radius:6px;" onclick="navigateVisitHistory(-1)" title="Previous Visit">◀</button>
+        <button type="button" class="icon-btn" style="background:#e2e8f0; color:#334155; width:36px; height:36px; border-radius:6px;" onclick="navigateVisitHistory(1)" title="Next Visit">▶</button>
+      </div>
+
+      <div class="row-2" style="margin-top: 6px;">
+        <div>
+          <label>Active Visit ID</label>
+          <input type="text" id="aId" readonly style="background:#f1f5f9;">
+        </div>
+        <div>
+          <label>Visit Date</label>
+          <input type="text" id="aDate" readonly style="background:#f1f5f9;">
+        </div>
+      </div>
+
+      <label>Chief Complaint <span class="required">*</span></label>
+      <textarea id="aCc" placeholder="Presenting complaint..."></textarea>
+
+      <label>History of Present Illness</label>
+      <textarea id="aHistory" placeholder="Onset, duration..."></textarea>
+
+      <div class="row-2">
+        <div>
+          <label>BP (mmHg)</label>
+          <input type="text" id="aBp" placeholder="120/80" oninput="checkVitalFlags()">
+        </div>
+        <div>
+          <label>Pulse (bpm)</label>
+          <input type="text" id="aPr" placeholder="72" oninput="checkVitalFlags()">
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div>
+          <label>SpO2 (%)</label>
+          <input type="text" id="aSpo2" placeholder="98" oninput="checkVitalFlags()">
+        </div>
+        <div>
+          <label>Diagnosis</label>
+          <input type="text" id="aDiag" placeholder="Diagnosis">
+        </div>
+      </div>
+
+      <label>Physical Examination</label>
+      <textarea id="aExam"></textarea>
+
+      <label>Investigations</label>
+      <input type="text" id="aInv" value="NR">
+
+      <!-- QUICK-PICK MEDICATIONS TRAY -->
+      <div class="chip-container">
+        <div style="font-size: 11px; font-weight: 700; color: #008055; margin-bottom: 4px;">💊 Quick-Pick Prescriptions</div>
+        <div class="category-scroll" id="quickCategoryScroll"></div>
+        <div class="drug-chip-list" id="quickDrugChipList"></div>
+      </div>
+
+      <label>Treatments / Prescriptions</label>
+      <textarea id="aTreatments" placeholder="Prescribed medications separated by comma..." oninput="runSafetyChecks()"></textarea>
+
+      <!-- REAL-TIME SAFETY ALERTS -->
+      <div id="allergyWarningBox" class="alert-box alert-danger"></div>
+      <div id="interactionWarningBox" class="alert-box alert-warning"></div>
+
+      <div class="row-2">
+        <div>
+          <label>Follow Up</label>
+          <input type="text" id="aFollowUp" value="PRN">
+        </div>
+        <div>
+          <label>Visit Note</label>
+          <input type="text" id="aDocNote" value="NR">
+        </div>
+      </div>
+
+      <div class="row-2">
+        <button class="btn btn-green" onclick="saveAppointmentRecord()">💾 Save Visit</button>
+        <button class="btn btn-orange" onclick="printPrescriptionMobile()">🖨️ Print Rx</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM FIXED TAB NAVIGATION -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" onclick="switchMobileTab('queueTab', this)">
+      <span class="icon">📅</span> Today
+    </button>
+    <button class="nav-btn" onclick="switchMobileTab('consultTab', this)">
+      <span class="icon">📝</span> Consult
+    </button>
+    <button class="nav-btn" onclick="switchMobileTab('searchTab', this)">
+      <span class="icon">🔍</span> Search
+    </button>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 style="margin:0; font-size:15px; color:#008055;">⚙️ Supabase Cloud & Gemini Setup</h3>
+        <button style="border:none; background:none; font-size:20px;" onclick="closeSettingsModal()">&times;</button>
+      </div>
+
+<div style="margin-top: 10px;">
+  <label>Clinic Logo (Prints on Cover Cards & Forms):</label>
+  <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+    <img id="cfgLogoPreview" src="logo.png" style="max-height: 48px; max-width: 100px; border: 1px solid #ccc; border-radius: 4px; padding: 2px;" onerror="this.style.display='none'">
+    <input type="file" id="cfgLogoInput" accept="image/*" style="font-size: 12px;" onchange="handleLogoUpload(this)">
+    <button type="button" class="btn btn-outline" style="width: auto; padding: 6px 10px; font-size: 11px; margin: 0;" onclick="removeCustomLogo()">Reset Default</button>
+  </div>
+</div>
+      
+      <label>Supabase Project URL:</label>
+      <input type="text" id="cfgSupabaseUrl" placeholder="https://xyz.supabase.co">
+
+      <label>Supabase Anon Public API Key:</label>
+      <input type="password" id="cfgSupabaseKey">
+
+      <label>Google Gemini API Key:</label>
+      <input type="password" id="cfgGeminiKey">
+
+      <button class="btn btn-green" style="margin-top:15px;" onclick="saveMobileSettings()">💾 Save Credentials</button>
+    </div>
+  </div>
+
+  <!-- PRINT TEMPLATES -->
+  <div id="printPatientCard" class="print-page">
+    <div class="card-header-single">
+      <img src="logo.png" alt="MD Logo" class="clinic-logo-img" onerror="this.style.display='none'">
+      <div id="cardClinicNameMm" class="clinic-name-myanmar"></div>
+      <div id="cardClinicAddress" class="clinic-address-text"></div>
+      <div id="cardClinicHours" class="clinic-hours-text"></div>
+    </div>
+
+    <div class="card-services-single">
+      <div id="cardServicesTitle" class="services-title"></div>
+      <ul id="cardServicesList" class="services-list-single"></ul>
+    </div>
+
+    <div class="patient-reg-box-single">
+      <div class="reg-title">ဆေးကုသမှုမှတ်တမ်း</div>
+      <div class="reg-single-col">
+        <div><b>အမည်:</b> <span id="cardPName"></span></div>
+        <div><b>အသက် / Gender:</b> <span id="cardPAgeSex"></span></div>
+        <div><b>ဖုန်းနံပါတ်:</b> <span id="cardPPhone"></span></div>
+        <div><b>နေရပ်လိပ်စာ:</b> <span id="cardPAddress"></span></div>
+      </div>
+      <div class="reg-footer-note">
+        * ဆေးခန်းသို့ လာတိုင်း ဤမှတ်တမ်းကို ယူဆောင်လာရန် *
+      </div>
+    </div>
+
+    <div class="print-page-break"></div>
+
+    <div class="card-header-single">
+      <div id="cardClinicNameEn" style="font-size: 22px; font-weight: bold; color: #008055; margin-bottom: 4px;"></div>
+      <div style="font-size: 16px; font-weight: bold;">Patient Medical Background & Baseline Summary</div>
+    </div>
+
+    <div class="history-summary-box">
+      <div class="history-item">
+        <div class="history-label">Past Medical History (PMH)</div>
+        <div class="history-value" id="cardPmh">None reported</div>
+      </div>
+
+      <div class="history-item allergy-item">
+        <div class="history-label" style="color: #c00;">Drug Allergies (DH)</div>
+        <div class="history-value" id="cardAllergy" style="font-weight: bold;">NKDA</div>
+      </div>
+
+      <div class="history-item">
+        <div class="history-label">စွဲသောက်ရန်ဆေးများ (Current Medications)</div>
+        <div class="history-value" id="cardCurrentMeds">None</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 60px; text-align: right; font-size: 13px;">
+      <b>Printed Date:</b> <span id="cardPrintDate"></span>
+    </div>
+  </div>
+
+  <div id="printPrescription" class="print-page">
+    <div class="rx-header">
+      <div>
+        <div id="rxClinicTitle" style="font-size:22px; font-weight:bold; color:#008055;"></div>
+        <div id="rxClinicSubtitle" style="font-size:13px; color:#333;"></div>
+      </div>
+      <div style="text-align:right; font-size:13px;">
+        <b>Date:</b> <span id="rxDate"></span>
+      </div>
+    </div>
+
+    <div class="rx-patient-box">
+      <div><b>Name:</b> <span id="rxPName"></span></div>
+      <div><b>Age / Gender:</b> <span id="rxPAgeSex"></span></div>
+      <div style="grid-column: span 2;"><b>Known Allergies:</b> <span id="rxPAllergy" style="color:#c00; font-weight:bold;"></span></div>
+    </div>
+
+    <div class="rx-section-title">CLINICAL FINDINGS</div>
+    <div style="font-size:13px; margin-top:8px; line-height:1.7;">
+      <div><b>Chief Complaint:</b> <span id="rxCc"></span></div>
+      <div><b>History:</b> <span id="rxHistory"></span></div>
+      <div><b>Vitals:</b> <span id="rxVitals"></span></div>
+      <div><b>Examinations:</b> <span id="rxExam"></span></div>
+      <div><b>Investigations:</b> <span id="rxInv"></span></div>
+      <div style="margin-top: 6px;"><b>Diagnosis:</b> <span id="rxDiag" style="font-weight: bold;"></span></div>
+    </div>
+
+    <div class="rx-section-title" style="margin-top:20px;">PRESCRIPTION (℞)</div>
+    <table class="rx-table">
+      <thead>
+        <tr>
+          <th style="width:8%;">#</th>
+          <th>Medication / Dosage / Instructions</th>
+        </tr>
+      </thead>
+      <tbody id="rxRows"></tbody>
+    </table>
+
+    <div class="rx-section-title" style="margin-top:20px;">ADVICE & FOLLOW-UP</div>
+    <div style="font-size:13px; margin-top:6px;">
+      <div><b>Follow Up:</b> <span id="rxFollowUp"></span></div>
+    </div>
+
+    <div class="rx-footer">
+      <div><i id="rxFooterName"></i></div>
+      <div class="sig-line">Doctor's Signature</div>
+    </div>
+  </div>
+
+<script>
+  let db;
+  let supabaseClient = null;
+  let globalPatientCache = {};
+  let currentPatientVisits = [];
+  let activeQuickCategory = "All";
+
+  // Safety Matrix Defaults (Synced with Desktop)
+  let ALLERGY_GROUPS = {
+    "penicillin": ["penicillin", "amoxicillin", "ampicillin", "ampiclox", "cloxacillin", "co-amoxiclav", "augmentin", "sultamicillin"],
+    "nsaid": ["aspirin", "ibuprofen", "naproxen", "diclofenac", "mefenamic", "celecoxib", "etoricoxib"]
+  };
+
+  let INTERACTION_RULES = [
+    { drugA: "warfarin", drugB: "aspirin", severity: "SEVERE: Major Bleeding Risk" }
+  ];
+
+  let GLOBAL_QUICK_PICK_DRUGS = [
+    { category: "Analgesics", drug: "Paracetamol 500mg bd" },
+    { category: "Analgesics", drug: "Mefenamic Acid 500mg tds" },
+    { category: "Antibiotics", drug: "Amoxicillin 500mg tds" },
+    { category: "Antibiotics", drug: "Augmentin 625mg bd" },
+    { category: "Antihypertensives", drug: "Amlodipine 5mg od" },
+    { category: "GI / Antacids", drug: "Omeprazole 20mg bd" }
+  ];
+
+  const DEFAULT_CLINIC_PROFILE = {
+    nameEn: "Clinical Medical Center",
+    nameMm: "အထွေထွေရောဂါကုဆေးခန်း",
+    phone: "091234567",
+    hours: "နံနက် ၉ နာရီမှ နေ့လည် ၁၂ နာရီထိ / ညနေ ၄ နာရီမှ ည ၈ နာရီထိ",
+    address: "အမှတ် ---၊ ----လမ်း၊ -- ရပ်ကွက်၊ ----မြို့နယ်",
+    services: [
+      "အထွေထွေ ရောဂါအမျိုးမျိုး ကုသပေးခြင်း",
+      "သွေးအုပ်စုခွဲပေးခြင်း၊ အသည်းရောင် အသားဝါ B, C ပိုး၊ HIV ပိုးများ ရှိမရှိ စစ်ဆေးပေးခြင်း",
+      "ကျောက်ကပ်၊ အသည်း စသည်တို့အပြင် အခြားသော ရောဂါအမျိုးမျိုးအတွက် သွေးဓာတ်ခွဲစမ်းသပ်ပေးခြင်း",
+      "ကာကွယ်ဆေးအမျိုးမျိုးအတွက် တိုင်ပင်ခြင်း၊ ထိုးနှံပေးခြင်း",
+      "ECG ဆွဲပေးခြင်း",
+      "၃ လခံ သားဆက်တားဆေးထိုးပေးခြင်း",
+      "လက်မောင်း အရေပြားအောက် တာရှည်ခံ သားဆက်တားဆေးပစ္စည်း ထုတ်/ထည့်ပေးခြင်း",
+      "အသေးစားခွဲစိတ်မှုများ ပြုလုပ်ပေးခြင်း",
+      "အိမ်တိုင်ရာရောက် ဆေးကုသဝန်ဆောင်မှု ပြုလုပ်ပေးခြင်း",
+      "အခြားသော ရောဂါများအတွက် တိုင်ပင်ဆွေးနွေးနိုင်ခြင်း စသည့် ကုသမှုများကို ဆောင်ရွက်ပေးနေပါသည်။"
+    ]
+  };
+
+  let CLINIC_PROFILE = { ...DEFAULT_CLINIC_PROFILE };
+
+  function loadClinicProfileFromStorage() {
+    try {
+      const saved = localStorage.getItem('floca_clinic_profile');
+      if (saved) CLINIC_PROFILE = Object.assign({}, DEFAULT_CLINIC_PROFILE, JSON.parse(saved));
+      const savedAllergies = localStorage.getItem('floca_drug_rules');
+      if (savedAllergies) ALLERGY_GROUPS = JSON.parse(savedAllergies);
+      const savedInteractions = localStorage.getItem('floca_interaction_rules');
+      if (savedInteractions) INTERACTION_RULES = JSON.parse(savedInteractions);
+      const savedChips = localStorage.getItem('floca_quick_pick_drugs');
+      if (savedChips) GLOBAL_QUICK_PICK_DRUGS = JSON.parse(savedChips);
+    } catch (e) {
+      console.warn("Storage sync fallback:", e);
+    }
+  }
+
+  function updateAppHeaderAndTitle() {
+    loadClinicProfileFromStorage();
+    const clinicName = CLINIC_PROFILE.nameEn || "MD Clinic";
+    document.title = `${clinicName} Mobile EMR`;
+    const mainHeader = document.getElementById('mobileAppHeader');
+    if (mainHeader) mainHeader.innerText = `🩺 ${clinicName} Mobile`;
+  }
+
+  function getMyanmarPrefix(age, sex) {
+    const ageNum = parseInt(age, 10);
+    const isMale = String(sex).toLowerCase() === 'male';
+    if (isNaN(ageNum)) return '';
+    if (isMale) {
+      if (ageNum <= 20) return 'Mg ';
+      if (ageNum <= 40) return 'Ko ';
+      return 'U ';
+    } else {
+      if (ageNum <= 40) return 'Ma ';
+      return 'Daw ';
+    }
+  }
+
+  function formatAsBullets(text, fallbackText = 'None') {
+    if (!text || !text.trim()) return fallbackText;
+    const items = text.split(',').map(s => s.trim()).filter(Boolean);
+    if (items.length <= 1) return text;
+    return items.map(item => `• ${item}`).join('\n');
+  }
+
+  function parseDrugList(rawText) {
+    if (!rawText || !rawText.trim()) return [];
+    return rawText.split(',').map(item => item.trim()).filter(Boolean);
+  }
+
+  function cleanDrugName(raw) {
+    if (!raw) return '';
+    return raw.toLowerCase()
+      .replace(/\d+(\.\d+)?\s*(mg|g|mcg|ml|iu|mEq|%)/gi, '')
+      .replace(/\b(od|bd|tds|tid|qid|qds|hs|stat|prn|po|iv|im)\b/gi, '')
+      .replace(/[^a-z0-9\s-]/gi, '')
+      .trim();
+  }
+
+  function expandDrugGroup(item) {
+    if (!item) return [];
+    const cleanItem = item.toLowerCase().trim();
+    let list = [cleanItem];
+    Object.keys(ALLERGY_GROUPS).forEach(groupKey => {
+      const cleanKey = groupKey.toLowerCase().trim();
+      if (cleanItem === cleanKey || cleanItem.includes(cleanKey)) {
+        list = list.concat(ALLERGY_GROUPS[groupKey].map(m => m.toLowerCase().trim()));
+      }
+    });
+    return [...new Set(list)];
+  }
+
+  function injectPrintBranding() {
+    loadClinicProfileFromStorage();
+const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
+  document.querySelectorAll('.clinic-logo-img, #printPatientCard img, #printPrescription img, .rx-header img').forEach(img => {
+    img.src = customLogo;
+    img.style.display = 'inline-block';
+  });
+    const rxClinicTitle = document.getElementById('rxClinicTitle');
+    if (rxClinicTitle) rxClinicTitle.innerText = `🩺 ${CLINIC_PROFILE.nameEn}`;
+    const cardClinicNameEn = document.getElementById('cardClinicNameEn');
+    if (cardClinicNameEn) cardClinicNameEn.innerText = `🩺 ${CLINIC_PROFILE.nameEn}`;
+    const rxClinicSubtitle = document.getElementById('rxClinicSubtitle');
+    if (rxClinicSubtitle) rxClinicSubtitle.innerText = `${CLINIC_PROFILE.address} | Ph: ${CLINIC_PROFILE.phone}`;
+    const rxFooterName = document.getElementById('rxFooterName');
+    if (rxFooterName) rxFooterName.innerText = CLINIC_PROFILE.nameEn;
+  }
+
+  // IndexedDB Configuration
+  const req = indexedDB.open("FlocaDatabase", 2);
+  req.onupgradeneeded = function(e) {
+    db = e.target.result;
+    if (!db.objectStoreNames.contains("patients")) {
+      db.createObjectStore("patients", { keyPath: "patientId" }).createIndex("name", "name", { unique: false });
+    }
+    if (!db.objectStoreNames.contains("appointments")) {
+      const a = db.createObjectStore("appointments", { keyPath: "appointmentId" });
+      a.createIndex("patientId", "patientId", { unique: false });
+      a.createIndex("synced", "synced", { unique: false });
+    }
+  };
+
+  req.onsuccess = function(e) {
+    db = e.target.result;
+    document.getElementById('connectionStatus').innerText = "Local DB Active";
+    loadClinicProfileFromStorage();
+    updateAppHeaderAndTitle();
+    renderQuickPickChips();
+    updatePatientCache();
+    renderQueue();
+    initSupabase();
+    // Force pull deltas right after DB is confirmed active
+    pullSupabaseDeltas(false);
+  };
+
+  function switchMobileTab(tabId, btn) {
+    document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    btn.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function formatDate(d) {
+    if (!d) return '';
+    const str = String(d).trim();
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return str;
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth()+1).padStart(2, '0')}/${date.getFullYear()}`;
+  }
+
+  function generateTimeId(prefix) {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    return `${prefix}-${yy}${mm}${dd}-${hh}${min}${ss}`;
+  }
+
+  function startNewPatient() {
+    document.getElementById('pId').value = generateTimeId("P");
+    document.getElementById('pName').value = '';
+    document.getElementById('pAge').value = '';
+    document.getElementById('pPhone').value = '';
+    document.getElementById('pAddress').value = '';
+    document.getElementById('pPmh').value = 'NR';
+    document.getElementById('pAllergy').value = 'NKDA';
+    document.getElementById('pCurrentMeds').value = 'NR';
+    document.getElementById('pDocNote').value = 'NR';
+
+    currentPatientVisits = [];
+    populateVisitDropdown([]);
+    forceNewAppointmentId();
+    switchMobileTab('consultTab', document.querySelectorAll('.nav-btn')[1]);
+  }
+
+  function forceNewAppointmentId() {
+    const nextId = generateTimeId("A");
+    document.getElementById('aId').value = nextId;
+    document.getElementById('aDate').value = formatDate(new Date());
+    document.getElementById('aCc').value = '';
+    document.getElementById('aHistory').value = '';
+    document.getElementById('aBp').value = '';
+    document.getElementById('aPr').value = '';
+    document.getElementById('aSpo2').value = '';
+    document.getElementById('aExam').value = '';
+    document.getElementById('aInv').value = 'NR';
+    document.getElementById('aDiag').value = '';
+    document.getElementById('aTreatments').value = '';
+    document.getElementById('aFollowUp').value = 'PRN';
+    document.getElementById('aDocNote').value = 'NR';
+
+    // Add temporary option in dropdown
+    const select = document.getElementById('aVisitSelect');
+    if (select) {
+      const opt = document.createElement('option');
+      opt.value = nextId;
+      opt.innerText = `➕ New Active Visit (${document.getElementById('aDate').value})`;
+      opt.selected = true;
+      select.insertBefore(opt, select.firstChild);
+    }
+
+    checkVitalFlags();
+    runSafetyChecks();
+  }
+
+  // =========================================================================
+  // VISIT DROPDOWN & STEPPER LOGIC
+  // =========================================================================
+  function loadPatientVisitsIntoDropdown(pId, selectedVisitId = null) {
+    if (!db || !pId) return;
+    const txA = db.transaction(["appointments"], "readonly");
+    const aIndex = txA.objectStore("appointments").index("patientId");
+
+    aIndex.getAll(pId).onsuccess = function(e) {
+      const appts = e.target.result || [];
+      const parseSafeDate = (d) => {
+        if (!d) return 0;
+        const parts = String(d).split('/');
+        if (parts.length === 3) return new Date(parts[2], parts[1]-1, parts[0]).getTime() || 0;
+        return new Date(d).getTime() || 0;
+      };
+
+      appts.sort((a,b) => parseSafeDate(b.date) - parseSafeDate(a.date));
+      currentPatientVisits = appts;
+      populateVisitDropdown(appts, selectedVisitId);
+    };
+  }
+
+  function populateVisitDropdown(appts, selectedVisitId = null) {
+    const select = document.getElementById('aVisitSelect');
+    if (!select) return;
+
+    if (!appts || appts.length === 0) {
+      select.innerHTML = '<option value="new">➕ New Visit (First Entry)</option>';
+      return;
+    }
+
+    select.innerHTML = appts.map((a, idx) => {
+      const isSelected = selectedVisitId ? (a.appointmentId === selectedVisitId) : (idx === 0);
+      const visitLabel = `${formatDate(a.date)} — ${a.diagnosis || a.chiefComplaint || 'Consult'}`;
+      return `<option value="${a.appointmentId}" ${isSelected ? 'selected' : ''}>#${idx + 1}: ${visitLabel}</option>`;
+    }).join('');
+
+    const activeId = selectedVisitId || appts[0].appointmentId;
+    loadSingleVisitDetails(activeId);
+  }
+
+  function onSelectVisitDropdown(visitId) {
+    if (!visitId || visitId === "new") {
+      forceNewAppointmentId();
+      return;
+    }
+    loadSingleVisitDetails(visitId);
+  }
+
+  function navigateVisitHistory(direction) {
+    const select = document.getElementById('aVisitSelect');
+    if (!select || select.options.length <= 1) return;
+
+    let newIndex = select.selectedIndex + direction;
+    if (newIndex >= 0 && newIndex < select.options.length) {
+      select.selectedIndex = newIndex;
+      onSelectVisitDropdown(select.value);
+    }
+  }
+
+  function loadSingleVisitDetails(aId) {
+    if (!db || !aId) return;
+    const txA = db.transaction(["appointments"], "readonly");
+    txA.objectStore("appointments").get(aId).onsuccess = (e) => {
+      const a = e.target.result;
+      if (a) {
+        document.getElementById('aId').value = a.appointmentId;
+        document.getElementById('aDate').value = formatDate(a.date);
+        document.getElementById('aCc').value = a.chiefComplaint || '';
+        document.getElementById('aHistory').value = a.history || '';
+        document.getElementById('aBp').value = a.bp || '';
+        document.getElementById('aPr').value = a.pr || '';
+        document.getElementById('aSpo2').value = a.spo2 || '';
+        document.getElementById('aExam').value = a.examinations || '';
+        document.getElementById('aInv').value = a.investigations || 'NR';
+        document.getElementById('aDiag').value = a.diagnosis || '';
+        document.getElementById('aTreatments').value = a.treatments || '';
+        document.getElementById('aFollowUp').value = a.followUp || 'PRN';
+        document.getElementById('aDocNote').value = a.doctorNote || 'NR';
+        checkVitalFlags();
+        runSafetyChecks();
+      }
+    };
+  }
+
+  // =========================================================================
+  // VITAL ALARMS & SAFETY CROSS-CHECKS
+  // =========================================================================
+  function checkVitalFlags() {
+    const bpInput = document.getElementById('aBp');
+    const prInput = document.getElementById('aPr');
+    const spo2Input = document.getElementById('aSpo2');
+
+    if (bpInput) {
+      const m = bpInput.value.trim().match(/^(\d{2,3})\s*\/\s*(\d{2,3})$/);
+      if (m) {
+        const sys = parseInt(m[1], 10), dia = parseInt(m[2], 10);
+        if (sys >= 140 || dia >= 90) bpInput.style.background = '#fecaca';
+        else if (sys < 90 || dia < 60) bpInput.style.background = '#fef08a';
+        else bpInput.style.background = '#dcfce7';
+      } else bpInput.style.background = '#fff';
+    }
+
+    if (prInput) {
+      const pr = parseInt(prInput.value.trim(), 10);
+      if (!isNaN(pr)) {
+        if (pr > 100 || pr < 50) prInput.style.background = '#fecaca';
+        else prInput.style.background = '#dcfce7';
+      } else prInput.style.background = '#fff';
+    }
+
+    if (spo2Input) {
+      const sp = parseFloat(spo2Input.value.trim());
+      if (!isNaN(sp)) {
+        if (sp < 95) spo2Input.style.background = '#fecaca';
+        else spo2Input.style.background = '#dcfce7';
+      } else spo2Input.style.background = '#fff';
+    }
+  }
+
+  function runSafetyChecks() {
+    const allergyText = document.getElementById('pAllergy').value.trim();
+    const currentMedsText = document.getElementById('pCurrentMeds').value;
+    const newTreatmentsText = document.getElementById('aTreatments').value;
+
+    const allBox = document.getElementById('allergyWarningBox');
+    const intBox = document.getElementById('interactionWarningBox');
+
+    const homeMeds = parseDrugList(currentMedsText);
+    const rxMeds = parseDrugList(newTreatmentsText);
+    const activeDrugs = [...new Set([...homeMeds, ...rxMeds])];
+
+    // 1. Check Allergies
+    const isAllergyClear = !allergyText || allergyText.toUpperCase() === "NKDA" || allergyText.toUpperCase() === "NR";
+    if (rxMeds.length > 0 && !isAllergyClear) {
+      const cleanPrescribed = rxMeds.map(d => ({ raw: d, clean: cleanDrugName(d) })).filter(d => d.clean);
+      const parsedAllergies = parseDrugList(allergyText);
+      let warnings = [];
+
+      parsedAllergies.forEach(aRaw => {
+        const token = cleanDrugName(aRaw);
+        if (!token) return;
+        const expanded = expandDrugGroup(token);
+        expanded.forEach(target => {
+          cleanPrescribed.forEach(p => {
+            if (p.clean.includes(target) || target.includes(p.clean)) {
+              warnings.push(`🚨 ALLERGY ALERT: Patient allergic to "${aRaw.toUpperCase()}" (Prescribed: ${p.raw})`);
+            }
+          });
+        });
+      });
+
+      if (warnings.length > 0) {
+        allBox.innerHTML = warnings.join('<br>');
+        allBox.style.display = 'block';
+      } else allBox.style.display = 'none';
+    } else allBox.style.display = 'none';
+
+    // 2. Check Interactions
+    if (activeDrugs.length >= 2) {
+      const cleanActive = activeDrugs.map(d => ({ raw: d, clean: cleanDrugName(d) })).filter(d => d.clean);
+      let intWarnings = [];
+
+      INTERACTION_RULES.forEach(rule => {
+        const grpA = expandDrugGroup(rule.drugA).map(cleanDrugName);
+        const grpB = expandDrugGroup(rule.drugB).map(cleanDrugName);
+        const mA = cleanActive.find(p => grpA.some(a => a && p.clean.includes(a)));
+        const mB = cleanActive.find(p => grpB.some(b => b && p.clean.includes(b)));
+
+        if (mA && mB && mA.clean !== mB.clean) {
+          intWarnings.push(`⚡ INTERACTION: <b>${mA.raw.toUpperCase()}</b> + <b>${mB.raw.toUpperCase()}</b> [${rule.severity}]`);
+        }
+      });
+
+      if (intWarnings.length > 0) {
+        intBox.innerHTML = intWarnings.join('<br>');
+        intBox.style.display = 'block';
+      } else intBox.style.display = 'none';
+    } else intBox.style.display = 'none';
+  }
+
+  // Quick Pick Prescriptions Engine
+  function renderQuickPickChips() {
+    const catsContainer = document.getElementById('quickCategoryScroll');
+    const chipsContainer = document.getElementById('quickDrugChipList');
+    if (!catsContainer || !chipsContainer) return;
+
+    const cats = ["All", ...new Set(GLOBAL_QUICK_PICK_DRUGS.map(d => d.category || "General"))];
+    catsContainer.innerHTML = cats.map(c => `
+      <button type="button" class="category-chip ${c === activeQuickCategory ? 'active' : ''}" onclick="selectQuickCategory('${c}')">${c}</button>
+    `).join('');
+
+    const filtered = activeQuickCategory === "All" 
+      ? GLOBAL_QUICK_PICK_DRUGS 
+      : GLOBAL_QUICK_PICK_DRUGS.filter(d => d.category === activeQuickCategory);
+
+    chipsContainer.innerHTML = filtered.map(d => `
+      <button type="button" class="drug-chip" onclick="insertQuickPickDrug('${d.drug.replace(/'/g, "\\'")}')">+ ${d.drug}</button>
+    `).join('');
+  }
+
+  function selectQuickCategory(cat) {
+    activeQuickCategory = cat;
+    renderQuickPickChips();
+  }
+
+  function insertQuickPickDrug(drugText) {
+    const el = document.getElementById('aTreatments');
+    let cur = el.value.trim();
+    if (cur.length > 0) {
+      if (!cur.endsWith(',')) cur += ', ';
+      else cur += ' ';
+      el.value = cur + drugText;
+    } else el.value = drugText;
+    runSafetyChecks();
+  }
+
+  // Database Caches & Today's Queue
+  function updatePatientCache() {
+    if (!db) return;
+    const tx = db.transaction(["patients"], "readonly");
+    tx.objectStore("patients").getAll().onsuccess = (e) => {
+      (e.target.result || []).forEach(p => {
+        globalPatientCache[p.patientId] = p;
+      });
+    };
+  }
+
+  function renderQueue() {
+    if (!db) return;
+    const todayStr = formatDate(new Date());
+    const tx = db.transaction(["appointments"], "readonly");
+    tx.objectStore("appointments").getAll().onsuccess = (e) => {
+      const all = e.target.result || [];
+      const today = all.filter(a => formatDate(a.date) === todayStr);
+      today.sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+      document.getElementById('todayCountBadge').innerText = `Today: ${today.length}`;
+      const container = document.getElementById('queueList');
+      if (today.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:30px 10px;">No appointments queued for today yet.</div>`;
+        return;
+      }
+
+      container.innerHTML = today.map((a, idx) => {
+        const p = globalPatientCache[a.patientId] || {};
+        const prefix = getMyanmarPrefix(p.age, p.sex);
+        const pName = p.name ? `${prefix}${p.name}` : (a.patientName || 'Unknown');
+        return `
+          <div class="patient-item" onclick="loadPatientVisit('${a.patientId}', '${a.appointmentId}')">
+            <div class="patient-item-header">
+              <span>#${idx + 1} ${pName}</span>
+              <span style="color:#008055; font-size:12px;">${a.diagnosis || 'Active'}</span>
+            </div>
+            <div class="patient-item-sub">
+              ${p.sex || '-'} / ${p.age || '-'} yrs | BP: ${a.bp || '-'} | SpO2: ${a.spo2 ? a.spo2 + '%' : '-'}
+            </div>
+            <div class="patient-item-sub">
+              <b>CC:</b> ${a.chiefComplaint || '-'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
+  }
+
+  function loadPatientVisit(pId, aId) {
+    const txP = db.transaction(["patients"], "readonly");
+    txP.objectStore("patients").get(pId).onsuccess = (e) => {
+      const p = e.target.result;
+      if (p) {
+        document.getElementById('pId').value = p.patientId;
+        document.getElementById('pName').value = p.name || '';
+        document.getElementById('pSex').value = p.sex || 'Male';
+        document.getElementById('pAge').value = p.age || '';
+        document.getElementById('pPhone').value = p.phone || '';
+        document.getElementById('pAddress').value = p.address || '';
+        document.getElementById('pPmh').value = p.pmh || 'NR';
+        document.getElementById('pAllergy').value = p.drugAllergy || 'NKDA';
+        document.getElementById('pCurrentMeds').value = p.currentMeds || 'NR';
+        document.getElementById('pDocNote').value = p.doctorNote || 'NR';
+      }
+      loadPatientVisitsIntoDropdown(pId, aId);
+    };
+
+    switchMobileTab('consultTab', document.querySelectorAll('.nav-btn')[1]);
+  }
+
+  function savePatientRecord() {
+    const pId = document.getElementById('pId').value.trim();
+    const pName = document.getElementById('pName').value.trim();
+    const pAge = document.getElementById('pAge').value.trim();
+    if (!pId || !pName || !pAge) return alert("Patient ID, Name, and Age are required!");
+
+    const now = Date.now();
+    const patient = {
+      patientId: pId,
+      name: pName,
+      sex: document.getElementById('pSex').value,
+      age: pAge,
+      birthYear: (new Date().getFullYear() - parseInt(pAge, 10)).toString(),
+      phone: document.getElementById('pPhone').value.trim(),
+      address: document.getElementById('pAddress').value.trim(),
+      pmh: document.getElementById('pPmh').value,
+      drugAllergy: document.getElementById('pAllergy').value,
+      currentMeds: document.getElementById('pCurrentMeds').value,
+      doctorNote: document.getElementById('pDocNote').value,
+      updatedAt: now,
+      synced: 0
+    };
+
+    const tx = db.transaction(["patients"], "readwrite");
+    tx.objectStore("patients").put(patient);
+    tx.oncomplete = () => {
+      globalPatientCache[pId] = patient;
+      alert("✅ Patient Profile Saved Locally!");
+      pushPendingToSupabase();
+    };
+  }
+
+  function saveAppointmentRecord() {
+    const aId = document.getElementById('aId').value.trim();
+    const pId = document.getElementById('pId').value.trim();
+    const aCc = document.getElementById('aCc').value.trim();
+    if (!pId) return alert("Select or save patient profile first!");
+    if (!aId || !aCc) return alert("Chief complaint is required!");
+
+    const now = Date.now();
+    const p = globalPatientCache[pId] || {};
+    const appt = {
+      appointmentId: aId,
+      patientId: pId,
+      patientName: p.name || "",
+      sex: p.sex || "Male",
+      date: document.getElementById('aDate').value || formatDate(new Date()),
+      chiefComplaint: aCc,
+      history: document.getElementById('aHistory').value,
+      bp: document.getElementById('aBp').value,
+      pr: document.getElementById('aPr').value,
+      spo2: document.getElementById('aSpo2').value,
+      examinations: document.getElementById('aExam').value,
+      investigations: document.getElementById('aInv').value || "NR",
+      diagnosis: document.getElementById('aDiag').value || aCc,
+      treatments: document.getElementById('aTreatments').value,
+      followUp: document.getElementById('aFollowUp').value || "PRN",
+      doctorNote: document.getElementById('aDocNote').value || "NR",
+      updatedAt: now,
+      synced: 0
+    };
+
+    const tx = db.transaction(["appointments"], "readwrite");
+    tx.objectStore("appointments").put(appt);
+    tx.oncomplete = () => {
+      alert("✅ Visit Saved Locally!");
+      loadPatientVisitsIntoDropdown(pId, aId);
+      renderQueue();
+      pushPendingToSupabase();
+    };
+  }
+
+  function searchPatientsMobile() {
+    const query = document.getElementById('mobileSearchInput').value.toLowerCase().trim();
+    const container = document.getElementById('patientSearchResults');
+    if (!query) {
+      container.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:20px; font-size:13px;">Type to search patient database...</div>`;
+      return;
+    }
+
+    const tx = db.transaction(["patients"], "readonly");
+    tx.objectStore("patients").getAll().onsuccess = (e) => {
+      const matches = (e.target.result || []).filter(p => {
+        const prefix = getMyanmarPrefix(p.age, p.sex);
+        const str = `${p.patientId} ${prefix}${p.name} ${p.phone} ${p.address} ${p.pmh}`.toLowerCase();
+        return str.includes(query);
+      });
+
+      if (matches.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:20px; font-size:13px;">No matching patient found.</div>`;
+        return;
+      }
+
+      container.innerHTML = matches.map(p => {
+        const prefix = getMyanmarPrefix(p.age, p.sex);
+        return `
+          <div class="patient-item" onclick="loadPatientOnly('${p.patientId}')">
+            <div class="patient-item-header">
+              <span>${prefix}${p.name}</span>
+              <span style="font-size:11px; color:#64748b;">${p.patientId}</span>
+            </div>
+            <div class="patient-item-sub">
+              ${p.sex} / ${p.age} yrs | Ph: ${p.phone || '-'}
+            </div>
+            <div class="patient-item-sub" style="color:#e11d48;">
+              Allergy: ${p.drugAllergy || 'NKDA'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    };
+  }
+
+  function loadPatientOnly(pId) {
+    const txP = db.transaction(["patients"], "readonly");
+    txP.objectStore("patients").get(pId).onsuccess = (e) => {
+      const p = e.target.result;
+      if (p) {
+        document.getElementById('pId').value = p.patientId;
+        document.getElementById('pName').value = p.name || '';
+        document.getElementById('pSex').value = p.sex || 'Male';
+        document.getElementById('pAge').value = p.age || '';
+        document.getElementById('pPhone').value = p.phone || '';
+        document.getElementById('pAddress').value = p.address || '';
+        document.getElementById('pPmh').value = p.pmh || 'NR';
+        document.getElementById('pAllergy').value = p.drugAllergy || 'NKDA';
+        document.getElementById('pCurrentMeds').value = p.currentMeds || 'NR';
+        document.getElementById('pDocNote').value = p.doctorNote || 'NR';
+        loadPatientVisitsIntoDropdown(pId);
+        switchMobileTab('consultTab', document.querySelectorAll('.nav-btn')[1]);
+      }
+    };
+  }
+
+  // =========================================================================
+  // SUPABASE REALTIME & DELTA ENGINE
+  // =========================================================================
+  function initSupabase() {
+    const url = localStorage.getItem('floca_supabase_url');
+    const key = localStorage.getItem('floca_supabase_key');
+    if (!url || !key || typeof supabase === 'undefined') {
+      document.getElementById('connectionStatus').innerText = "Offline Mode (No Supabase)";
+      return;
+    }
+
+    try {
+      supabaseClient = supabase.createClient(url, key);
+      document.getElementById('syncDot').style.background = '#22c55e';
+      document.getElementById('connectionStatus').innerText = "⚡ Supabase Connected";
+
+      supabaseClient.channel('mobile-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'patients' }, payload => {
+          if (payload.new && db) {
+            const p = payload.new;
+            const tx = db.transaction(["patients"], "readwrite");
+            tx.objectStore("patients").put({
+              patientId: p.patient_id, name: p.name, sex: p.sex, birthYear: p.birth_year,
+              age: p.age, pmh: p.pmh, drugAllergy: p.drug_allergy, currentMeds: p.current_meds,
+              doctorNote: p.doctor_note, phone: p.phone, address: p.address, updatedAt: p.updated_at, synced: 1
+            });
+            tx.oncomplete = () => updatePatientCache();
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, payload => {
+          if (payload.new && db) {
+            const a = payload.new;
+            const tx = db.transaction(["appointments"], "readwrite");
+            tx.objectStore("appointments").put({
+              appointmentId: a.appointment_id, patientId: a.patient_id, patientName: a.patient_name,
+              sex: a.sex, date: a.date, chiefComplaint: a.chief_complaint, history: a.history,
+              bp: a.bp, pr: a.pr, spo2: a.spo2, examinations: a.examinations, investigations: a.investigations,
+              diagnosis: a.diagnosis, treatments: a.treatments, followUp: a.follow_up,
+              doctorNote: a.doctor_note, updatedAt: a.updated_at, synced: 1
+            });
+            tx.oncomplete = () => {
+              renderQueue();
+              const curPid = document.getElementById('pId').value;
+              if (curPid && curPid === a.patient_id) loadPatientVisitsIntoDropdown(curPid, a.appointment_id);
+            };
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_settings' }, payload => {
+          if (payload.new && payload.new.setting_key === 'clinic_profile') {
+            localStorage.setItem('floca_clinic_profile', JSON.stringify(payload.new.setting_val));
+            CLINIC_PROFILE = Object.assign({}, DEFAULT_CLINIC_PROFILE, payload.new.setting_val);
+            updateAppHeaderAndTitle();
+          }
+        })
+        .subscribe();
+
+      pullSupabaseDeltas(false);
+      pushPendingToSupabase();
+
+      window.addEventListener('online', () => {
+        document.getElementById('syncDot').style.background = '#22c55e';
+        document.getElementById('connectionStatus').innerText = "⚡ Supabase Connected";
+        pushPendingToSupabase();
+        pullSupabaseDeltas(false);
+      });
+
+      window.addEventListener('offline', () => {
+        document.getElementById('syncDot').style.background = '#eab308';
+        document.getElementById('connectionStatus').innerText = "Offline Mode";
+      });
+
+      // 1. Auto-pull every time the phone is unlocked or switched back to the app
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && navigator.onLine) {
+          pushPendingToSupabase();
+          pullSupabaseDeltas(false);
+        }
+      });
+      window.addEventListener('focus', () => {
+        if (navigator.onLine) {
+          pullSupabaseDeltas(false);
+        }
+      });
+
+      // 2. Periodic bidirectional sync every 30 seconds
+      setInterval(() => {
+        if (navigator.onLine) {
+          pushPendingToSupabase();
+          pullSupabaseDeltas(false);
+        }
+      }, 30000);
+
+    } catch(err) {
+      console.warn("Supabase init error:", err);
+    }
+  }
+
+  let isSyncingOutbox = false;
+  async function pushPendingToSupabase() {
+    if (!supabaseClient || !db || isSyncingOutbox || !navigator.onLine) return;
+    isSyncingOutbox = true;
+
+    try {
+      const uploadNow = Date.now();
+
+      // 1. Scan for unsynced patients
+      const txP = db.transaction(["patients"], "readonly");
+      const unsyncedP = await new Promise(r => {
+        const q = txP.objectStore("patients").getAll();
+        q.onsuccess = () => r((q.result || []).filter(p => p.synced === 0));
+        q.onerror = () => r([]);
+      });
+
+      for (const p of unsyncedP) {
+        const payload = {
+          patient_id: String(p.patientId).trim(),
+          name: p.name || "",
+          sex: p.sex || "Male",
+          birth_year: String(p.birthYear || ""),
+          age: String(p.age || ""),
+          pmh: p.pmh || "NR",
+          drug_allergy: p.drugAllergy || "NKDA",
+          current_meds: p.currentMeds || "NR",
+          doctor_note: p.doctorNote || "NR",
+          phone: p.phone || "",
+          address: p.address || "",
+          updated_at: uploadNow
+        };
+        const { error } = await supabaseClient.from('patients').upsert(payload);
+        if (!error) {
+          p.synced = 1;
+          p.updatedAt = uploadNow;
+          const writeTx = db.transaction(["patients"], "readwrite");
+          writeTx.objectStore("patients").put(p);
+        }
+      }
+
+      // 2. Scan for unsynced appointments
+      const txA = db.transaction(["appointments"], "readonly");
+      const unsyncedA = await new Promise(r => {
+        const q = txA.objectStore("appointments").getAll();
+        q.onsuccess = () => r((q.result || []).filter(a => a.synced === 0));
+        q.onerror = () => r([]);
+      });
+
+      for (const a of unsyncedA) {
+        const pInfo = globalPatientCache[a.patientId] || {};
+        const payload = {
+          appointment_id: String(a.appointmentId).trim(),
+          patient_id: String(a.patientId).trim(),
+          patient_name: pInfo.name || a.patientName || "",
+          sex: pInfo.sex || a.sex || "",
+          date: a.date || formatDate(new Date()),
+          chief_complaint: a.chiefComplaint || "Consultation",
+          history: a.history || "",
+          bp: a.bp || "",
+          pr: a.pr || "",
+          spo2: a.spo2 || "",
+          examinations: a.examinations || "",
+          investigations: a.investigations || "NR",
+          diagnosis: a.diagnosis || a.chiefComplaint || "",
+          treatments: a.treatments || "",
+          follow_up: a.followUp || "PRN",
+          doctor_note: a.doctorNote || "NR",
+          updated_at: uploadNow
+        };
+        const { error } = await supabaseClient.from('appointments').upsert(payload);
+        if (!error) {
+          a.synced = 1;
+          a.updatedAt = uploadNow;
+          const writeTx = db.transaction(["appointments"], "readwrite");
+          writeTx.objectStore("appointments").put(a);
+        }
+      }
+    } catch(e) {
+      console.warn("Outbox push error:", e);
+    } finally {
+      isSyncingOutbox = false;
+    }
+  }
+
+  async function pullSupabaseDeltas(userAlert = false) {
+    // 1. Wait up to 3 seconds for IndexedDB to finish initializing if app just opened
+    if (!db) {
+      let retries = 0;
+      while (!db && retries < 15) {
+        await new Promise(r => setTimeout(r, 200));
+        retries++;
+      }
+    }
+    if (!supabaseClient || !db) {
+      if (userAlert) alert("Database or Supabase is not ready yet. Please check settings.");
+      return;
+    }
+
+    pushPendingToSupabase().catch(console.warn);
+
+    // 2. Safely verify if local database has patient rows
+    const localPatientCount = await new Promise((resolve) => {
+      try {
+        const tx = db.transaction(["patients"], "readonly");
+        const countReq = tx.objectStore("patients").count();
+        countReq.onsuccess = () => resolve(countReq.result || 0);
+        countReq.onerror = () => resolve(0);
+      } catch (e) {
+        resolve(0);
+      }
+    });
+
+    let lastSync = parseInt(localStorage.getItem('floca_mobile_last_sync') || '0', 10);
+    // If local storage is empty, force full sync from epoch 0
+    if (localPatientCount === 0) {
+      console.log("Empty local storage detected. Pulling full cloud database...");
+      lastSync = 0;
+    }
+
+    const PAGE_SIZE = 1000;
+    async function fetchAllRows(tableName) {
+      let results = [];
+      let from = 0;
+      let more = true;
+      while (more) {
+        const { data, error } = await supabaseClient
+          .from(tableName)
+          .select('*')
+          .gt('updated_at', lastSync)
+          .order('updated_at', { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (data && data.length > 0) {
+          results = results.concat(data);
+          if (data.length < PAGE_SIZE) more = false;
+          else from += PAGE_SIZE;
+        } else {
+          more = false;
+        }
+      }
+      return results;
+    }
+
+    try {
+      // 3. Pull and store Patients
+      const pData = await fetchAllRows('patients');
+      if (pData.length > 0) {
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(["patients"], "readwrite");
+          const s = tx.objectStore("patients");
+          pData.forEach(p => {
+            if (!p.patient_id) return;
+            s.put({
+              patientId: String(p.patient_id).trim(),
+              name: p.name || "",
+              sex: p.sex || "Male",
+              birthYear: String(p.birth_year || ""),
+              age: String(p.age || ""),
+              pmh: p.pmh || "NR",
+              drugAllergy: p.drug_allergy || "NKDA",
+              currentMeds: p.current_meds || "NR",
+              doctorNote: p.doctor_note || "NR",
+              phone: p.phone || "",
+              address: p.address || "",
+              updatedAt: Number(p.updated_at) || Date.now(),
+              synced: 1
+            });
+          });
+          tx.oncomplete = () => resolve();
+          tx.onerror = e => reject(e);
+        });
+        updatePatientCache();
+      }
+
+      // 4. Pull and store Appointments
+      const aData = await fetchAllRows('appointments');
+      if (aData.length > 0) {
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(["appointments"], "readwrite");
+          const s = tx.objectStore("appointments");
+          aData.forEach(a => {
+            if (!a.appointment_id) return;
+            s.put({
+              appointmentId: String(a.appointment_id).trim(),
+              patientId: String(a.patient_id || "").trim(),
+              patientName: a.patient_name || "",
+              sex: a.sex || "Male",
+              date: a.date || "",
+              chiefComplaint: a.chief_complaint || "",
+              history: a.history || "",
+              bp: a.bp || "",
+              pr: a.pr || "",
+              spo2: a.spo2 || "",
+              examinations: a.examinations || "",
+              investigations: a.investigations || "NR",
+              diagnosis: a.diagnosis || "",
+              treatments: a.treatments || "",
+              followUp: a.follow_up || "PRN",
+              doctorNote: a.doctor_note || "NR",
+              updatedAt: Number(a.updated_at) || Date.now(),
+              synced: 1
+            });
+          });
+          tx.oncomplete = () => resolve();
+          tx.onerror = e => reject(e);
+        });
+        renderQueue();
+        const activePid = document.getElementById('pId')?.value;
+        if (activePid && typeof loadPatientVisitsIntoDropdown === 'function') {
+          loadPatientVisitsIntoDropdown(activePid);
+        }
+      }
+
+      // 5. Pull Clinic Settings
+      const { data: sData } = await supabaseClient
+        .from('clinic_settings')
+        .select('*')
+        .gt('updated_at', lastSync);
+
+      if (sData && sData.length > 0) {
+        sData.forEach(s => {
+          if (s.setting_key === 'clinic_profile') {
+            localStorage.setItem('floca_clinic_profile', JSON.stringify(s.setting_val));
+            CLINIC_PROFILE = Object.assign({}, DEFAULT_CLINIC_PROFILE, s.setting_val);
+            updateAppHeaderAndTitle();
+          }
+        });
+      }
+
+      // Only advance timestamp if fetch succeeded
+      localStorage.setItem('floca_mobile_last_sync', Date.now().toString());
+
+      if (userAlert) {
+        alert(`⚡ Synced: ${pData.length} Patients, ${aData.length} Visits`);
+      }
+    } catch (e) {
+      console.error("Delta pull error:", e);
+      if (userAlert) alert(`❌ Sync failed: ${e.message || e}`);
+    }
+  }
+
+  function openSettingsModal() {
+    document.getElementById('cfgSupabaseUrl').value = localStorage.getItem('floca_supabase_url') || '';
+    document.getElementById('cfgSupabaseKey').value = localStorage.getItem('floca_supabase_key') || '';
+    document.getElementById('cfgGeminiKey').value = localStorage.getItem('floca_gemini_key') || '';
+    document.getElementById('settingsModal').style.display = 'flex';
+  }
+
+  function closeSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'none';
+  }
+
+function handleLogoUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+
+  // Optional: Prevent localStorage bloat by checking file size (< 1.5MB recommended)
+  if (file.size > 1.5 * 1024 * 1024) {
+    alert("Please select a logo smaller than 1.5MB.");
+    input.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64Data = e.target.result;
+    localStorage.setItem('floca_clinic_logo', base64Data);
+    
+    // Update preview in settings
+    const preview = document.getElementById('cfgLogoPreview');
+    if (preview) {
+      preview.src = base64Data;
+      preview.style.display = 'inline-block';
+    }
+
+    // Push to Supabase settings if configured
+    if (typeof pushSettingToSupabase === 'function') {
+      pushSettingToSupabase('clinic_logo', base64Data);
+    }
+    
+    alert("✅ Logo updated successfully!");
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeCustomLogo() {
+  localStorage.removeItem('floca_clinic_logo');
+  const preview = document.getElementById('cfgLogoPreview');
+  if (preview) preview.src = "logo.png";
+  if (typeof pushSettingToSupabase === 'function') {
+    pushSettingToSupabase('clinic_logo', null);
+  }
+  alert("Reverted to default logo.");
+}
+
+  function saveMobileSettings() {
+    const url = document.getElementById('cfgSupabaseUrl').value.trim();
+    const key = document.getElementById('cfgSupabaseKey').value.trim();
+    const gemini = document.getElementById('cfgGeminiKey').value.trim();
+
+    if (url) localStorage.setItem('floca_supabase_url', url);
+    if (key) localStorage.setItem('floca_supabase_key', key);
+    if (gemini) localStorage.setItem('floca_gemini_key', gemini);
+
+    closeSettingsModal();
+    initSupabase();
+    alert("Parameters Saved Successfully!");
+  }
+
+  // Print Handlers
+  function printPatientCardMobile() {
+    injectPrintBranding();
+    const pId = document.getElementById('pId').value.trim();
+    if (!pId) return alert("Select or save a patient first!");
+
+    document.getElementById('cardClinicNameMm').innerText = CLINIC_PROFILE.nameMm;
+    document.getElementById('cardClinicAddress').innerHTML = `${CLINIC_PROFILE.address}<br>📞 ${CLINIC_PROFILE.phone} (ဆေးခန်းချိန် အတွင်းသာ)`;
+    document.getElementById('cardClinicHours').innerHTML = `<b>ဆေးခန်းဖွင့်ချိန်:</b> ${CLINIC_PROFILE.hours}`;
+    document.getElementById('cardServicesTitle').innerText = `${CLINIC_PROFILE.nameMm} တွင် ရရှိနိုင်သော ဝန်ဆောင်မှုများ`;
+    
+    const sList = document.getElementById('cardServicesList');
+    sList.innerHTML = (CLINIC_PROFILE.services || []).map(s => `<li>${s}</li>`).join('');
+
+    const rawName = document.getElementById('pName').value || '-';
+    const ageVal = document.getElementById('pAge').value;
+    const sexVal = document.getElementById('pSex').value;
+    const prefix = getMyanmarPrefix(ageVal, sexVal);
+    const formattedName = rawName !== '-' ? `${prefix}${rawName}` : '-';
+
+    document.getElementById('cardPName').innerText = formattedName;
+    document.getElementById('cardPAgeSex').innerText = `${ageVal || '-'} yrs / ${sexVal}`;
+    document.getElementById('cardPPhone').innerText = document.getElementById('pPhone').value.trim() || 'None';
+    document.getElementById('cardPAddress').innerText = document.getElementById('pAddress').value.trim() || 'None';
+    document.getElementById('cardPmh').innerText = formatAsBullets(document.getElementById('pPmh').value, 'None reported');
+    document.getElementById('cardAllergy').innerText = formatAsBullets(document.getElementById('pAllergy').value, 'NKDA');
+    document.getElementById('cardCurrentMeds').innerText = formatAsBullets(document.getElementById('pCurrentMeds').value, 'None');
+    document.getElementById('cardPrintDate').innerText = formatDate(new Date());
+
+    document.body.className = 'printing-card';
+    window.print();
+    document.body.className = '';
+  }
+
+  function printPrescriptionMobile() {
+    injectPrintBranding();
+    const pId = document.getElementById('pId').value.trim();
+    const aId = document.getElementById('aId').value.trim();
+    if (!pId || !aId) return alert("Select or save a patient visit first!");
+
+    const rawName = document.getElementById('pName').value || 'N/A';
+    const ageVal = document.getElementById('pAge').value;
+    const sexVal = document.getElementById('pSex').value;
+    const prefix = getMyanmarPrefix(ageVal, sexVal);
+    const formattedName = rawName !== 'N/A' ? `${prefix}${rawName}` : 'N/A';
+
+    document.getElementById('rxPName').innerText = formattedName;
+    document.getElementById('rxPAgeSex').innerText = `${ageVal || 'N/A'} yrs / ${sexVal}`;
+    document.getElementById('rxPAllergy').innerText = formatAsBullets(document.getElementById('pAllergy').value, 'NKDA');
+    document.getElementById('rxDate').innerText = formatDate(new Date());
+    document.getElementById('rxCc').innerText = document.getElementById('aCc').value || 'N/A';
+    document.getElementById('rxHistory').innerText = document.getElementById('aHistory').value || 'None';
+
+    const bp = document.getElementById('aBp').value;
+    const pr = document.getElementById('aPr').value;
+    const spo2 = document.getElementById('aSpo2').value;
+    document.getElementById('rxVitals').innerText = `BP: ${bp || 'N/A'}, PR: ${pr || 'N/A'} bpm, SpO2: ${spo2 ? spo2 + '%' : 'N/A'}`;
+
+    document.getElementById('rxExam').innerText = document.getElementById('aExam').value || 'Unremarkable';
+    document.getElementById('rxInv').innerText = document.getElementById('aInv').value || 'None';
+    document.getElementById('rxDiag').innerText = document.getElementById('aDiag').value || 'N/A';
+
+    const rawRx = document.getElementById('aTreatments').value;
+    const parsedRx = parseDrugList(rawRx);
+    const rxTbody = document.getElementById('rxRows');
+    if (parsedRx.length > 0) {
+      rxTbody.innerHTML = parsedRx.map((drug, i) => `<tr><td style="text-align: center;"><b>${i + 1}</b></td><td><b>${drug}</b></td></tr>`).join('');
+    } else {
+      rxTbody.innerHTML = `<tr><td colspan="2">No treatments prescribed.</td></tr>`;
+    }
+
+    document.getElementById('rxFollowUp').innerText = document.getElementById('aFollowUp').value || 'PRN';
+
+    document.body.className = 'printing-rx';
+    window.print();
+    document.body.className = '';
+  }
+</script>
+
+<!-- GEMINI AI SAFETY MODULE -->
+<script type="module">
+  import { GoogleGenAI } from "https://esm.run/@google/genai";
+
+  window.promptForGeminiKey = function() {
+    const current = localStorage.getItem('floca_gemini_key') || '';
+    const key = prompt("Enter Google Gemini API Key:", current);
+    if (key !== null) {
+      localStorage.setItem('floca_gemini_key', key.trim());
+      alert("Gemini Key Saved!");
+    }
+  };
+
+  window.runMobileSafetyAudit = async function() {
+    const apiKey = localStorage.getItem('floca_gemini_key');
+    if (!apiKey) return alert("Please configure your Gemini API Key first (⚙️ Settings or 🔑 Key button).");
+
+    const out = document.getElementById('geminiAuditOutputMobile');
+    out.style.display = 'block';
+    out.style.borderColor = '#cbd5e1';
+    out.innerHTML = '⏳ <i>Auditing visit data against drug allergies & interactions...</i>';
+
+    const pAge = document.getElementById('pAge')?.value || 'N/A';
+    const pSex = document.getElementById('pSex')?.value || 'N/A';
+    const pPmh = document.getElementById('pPmh')?.value || 'None reported';
+    const pAllergy = document.getElementById('pAllergy')?.value || 'NKDA';
+    const pCurrentMeds = document.getElementById('pCurrentMeds')?.value || 'None';
+
+    const aCc = document.getElementById('aCc')?.value || 'N/A';
+    const aBp = document.getElementById('aBp')?.value || 'N/A';
+    const aPr = document.getElementById('aPr')?.value || 'N/A';
+    const aSpo2 = document.getElementById('aSpo2')?.value || 'N/A';
+    const aDiag = document.getElementById('aDiag')?.value || 'Unspecified';
+    const aTreatments = document.getElementById('aTreatments')?.value || 'None prescribed';
+
+    if (aCc === 'N/A' && aTreatments === 'None prescribed') {
+      out.innerHTML = '⚠️ <i>Enter at least a Chief Complaint or Treatment before auditing.</i>';
+      return;
+    }
+
+    const auditPrompt = `
+You are a clinical safety auditor assisting an outpatient general practitioner on a mobile EMR.
+Scan this case for GROSS ERRORS, CRITICAL DRUG INTERACTIONS, ALLERGY CONTRAINDICATIONS, and VITAL SIGN ALARM FLAGS.
+Act ONLY as an auditor. Do NOT dictate diagnosis.
+
+[PATIENT BACKGROUND]
+- Age/Sex: ${pAge} / ${pSex}
+- PMH: ${pPmh}
+- Allergies: ${pAllergy}
+- Current Meds: ${pCurrentMeds}
+
+[VISIT]
+- Chief Complaint: ${aCc}
+- Vitals: BP ${aBp} | PR ${aPr} | SpO2 ${aSpo2}%
+- Working Diagnosis: ${aDiag}
+- Prescribed: ${aTreatments}
+
+INSTRUCTIONS:
+- If clear, return: "✅ No Gross Safety Conflicts or Severe Drug Interactions Detected."
+- If issues exist, output concise bullet points with bold warnings (e.g., 🚨 ALLERGY WARNING, ⚡ INTERACTION).
+Keep response compact for mobile reading.
+`;
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: apiKey });
+      const response = await ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: auditPrompt,
+      });
+
+      const responseText = response.text || "No response.";
+      out.style.borderColor = (responseText.includes("🚨") || responseText.includes("⚡") || responseText.includes("⚠️")) ? "#d9534f" : "#28a745";
+      out.innerHTML = responseText;
+    } catch (err) {
+      console.error(err);
+      out.style.borderColor = "#d9534f";
+      out.innerHTML = `<span style="color:#e11d48;"><b>❌ Audit Error:</b> ${err.message || 'Check network or API Key.'}</span>`;
+    }
+  };
+</script>
+
+</body>
+</html>
