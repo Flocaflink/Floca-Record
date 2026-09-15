@@ -21,6 +21,16 @@
       font-weight: bold;
       margin-left: 3px;
     }
+
+/* Disable number input spin buttons */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] { 
+  -moz-appearance: textfield; 
+}
     
     /* Dynamic Save Status Badges */
     .status-badge {
@@ -67,6 +77,7 @@
     .btn-save { background-color: #008055; }
     .btn-sync { background-color: #2e7d32; }
     .status { margin-top: 15px; font-size: 13px; color: #666; text-align: center; }
+
 
     /* MODAL POPUP OVERLAY STYLES */
     .modal-overlay {
@@ -226,7 +237,7 @@
 
       body.printing-card #printPatientCard { width: 100%; max-width: 750px; margin: 0 auto; padding: 30px 25px; box-sizing: border-box; }
       .card-header-single { text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
-      .clinic-logo-img { max-width: 200px; height: auto; margin-bottom: 12px; }
+      .clinic-logo-img { max-width: 200px; max-height: 70px; margin-bottom: 6px; }
       .clinic-name-myanmar { font-family: 'Padauk', sans-serif !important; font-size: 24px !important; font-weight: bold; margin-bottom: 8px; line-height: 1.5; }
       .clinic-address-text, .clinic-hours-text { font-family: 'Padauk', sans-serif !important; font-size: 17px !important; line-height: 1.8 !important; color: #111; font-weight: 500; }
 
@@ -266,7 +277,7 @@
       .services-list-single { list-style-type: square; padding-left: 30px; margin: 0 auto; width: 95%; }
       .services-list-single li { font-family: 'Padauk', sans-serif !important; font-size: 16px !important; line-height: 1.8; }
 
-      .patient-reg-box-single { border: 2px solid #000; padding: 20px 25px; border-radius: 6px; margin-top: 20px; page-break-inside: avoid; }
+      .patient-reg-box-single { border: 2px solid #000; padding: 20px 25px; border-radius: 6px; margin-top: 10px; page-break-inside: avoid; }
       .reg-title { font-family: 'Padauk', sans-serif !important; text-align: center; font-weight: bold; font-size: 20px !important; margin-bottom: 15px; border-bottom: 1px dashed #000; padding-bottom: 8px; }
       .reg-single-col { display: flex; flex-direction: column; gap: 12px; font-size: 16px; line-height: 1.8; }
       .reg-footer-note { font-family: 'Padauk', sans-serif !important; text-align: center; margin-top: 20px; font-size: 14px; font-weight: bold; font-style: italic; }
@@ -307,7 +318,7 @@
     </div>
     <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
       <span id="supabaseStatusBadge" style="font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 12px; background: #e2e8f0; color: #475569;">
-        ⚡ Supabase: Connecting...
+        ⚡ Deltabase: Connecting...
       </span>
       <button type="button" 
               class="action-btn" 
@@ -328,11 +339,17 @@
 
 <!-- TAB 0: TODAY'S APPOINTMENTS QUEUE -->
   <div id="todayTab" class="tab-content active">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-      <h3 style="margin: 0; color: #008055;">📅 Today's Appointments</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <h3 id="queueTabHeading" style="margin: 0; color: #008055;">📅 Appointments</h3>
+        <input type="date" id="queueDateFilter" style="width: auto; padding: 5px 8px; font-size: 13px; font-weight: bold; border: 1px solid #008055; border-radius: 4px; color: #008055; cursor: pointer;" onchange="renderTodayQueueUI()">
+        <button type="button" class="action-btn" style="background-color: #64748b; width: auto; padding: 6px 10px; font-size: 12px;" onclick="setQueueToToday()">
+          Today
+        </button>
+      </div>
       <div style="display: flex; gap: 8px;">
         <button type="button" class="action-btn" style="background-color: #0284c7; width: auto; padding: 6px 14px; font-size: 13px;" onclick="renderTodayQueueUI()">
-          🔄 Refresh Queue
+          🔄 Refresh
         </button>
         <button type="button" class="action-btn" style="background-color: #008055; width: auto; padding: 6px 14px; font-size: 13px;" onclick="generateNextPatientId(); switchTab('entryTab');">
           ➕ Register New Patient
@@ -453,7 +470,7 @@
           </div>
           <div>
             <label>Age <span class="required">*</span>:</label>
-            <input type="number" id="pAge" placeholder="26" oninput="markPatientUnsaved(); triggerDuplicateCheck();">
+            <input type="number" id="pAge" placeholder="26" onwheel="this.blur()" oninput="markPatientUnsaved(); triggerDuplicateCheck();">
           </div>
         </div>
 
@@ -654,14 +671,7 @@
 <span style="font-family: 'Padauk'; font-weight: bold; position: absolute; left: -9999px; visibility: hidden;">
   မြန်မာစာ စမ်းသပ်စာသား
 </span>
-
-
-    <!-- BOTTOM BUTTON BAR -->
-    <div class="btn-bar" style="margin-top:25px; display:flex; gap:10px;">
-      <button class="action-btn btn-sync" onclick="syncAllToSheets()">☁️ Sync Unsynced Records to Google Sheets</button>
-      <button class="action-btn" style="background-color: #0d5c75;" onclick="importFromGoogleSheets()">📥 Import Database from Google Sheet</button>
-      <button type="button" class="action-btn" style="background-color: #5a6268; flex: 0.6;" onclick="promptForScriptUrl()">⚙️ Apps Script URL</button>
-    </div>
+	
   </div>
 
 <!-- MODAL: SYSTEM SETTINGS & COMPLETE CLINIC CATALOGS -->
@@ -680,16 +690,15 @@
 <div style="margin-top: 10px;">
   <label>Clinic Logo (Prints on Cover Cards & Forms):</label>
   <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
-    <img id="cfgLogoPreview" src="logo.png" style="max-height: 48px; max-width: 100px; border: 1px solid #ccc; border-radius: 4px; padding: 2px;" onerror="this.style.display='none'">
+    <img id="cfgLogoPreview" style="max-height: 48px; max-width: 100px; border: 1px solid #ccc; border-radius: 4px; padding: 2px; display: none;">
     <input type="file" id="cfgLogoInput" accept="image/*" style="font-size: 12px;" onchange="handleLogoUpload(this)">
-    <button type="button" class="btn btn-outline" style="width: auto; padding: 6px 10px; font-size: 11px; margin: 0;" onclick="removeCustomLogo()">Reset Default</button>
   </div>
 </div>
+
       <div class="full-width" style="border: 2px solid #008055; border-radius: 6px; padding: 15px; background: #fff;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px dashed #ccc; padding-bottom: 8px;">
           <h4 style="margin: 0; color: #008055;">🏥 Clinic Practice Profile & Print Header Settings</h4>
           <button type="button" class="action-btn" style="background:#008055; width:auto; padding: 6px 16px;" onclick="saveClinicProfileSettings()">💾 Save Clinic Branding</button>
-<button type="button" class="action-btn" style="background:#0d5c75; width:auto; padding: 6px 14px;" onclick="uploadSettingsToGoogleSheets()">☁️ Backup Presets to Sheet</button>
         </div>
 
         <div class="grid">
@@ -810,36 +819,52 @@
 
       <!-- 8. BACKEND CONNECTION & KEYS -->
       <div class="full-width" style="border:1px solid #cbd5e1; border-radius:6px; padding:15px; background:#f8fafc;">
-        <h4 style="margin:0 0 10px 0; color:#334155;">🔒 Supabase Realtime & Cold Webhook Connections</h4>
+        <h4 style="margin:0 0 10px 0; color:#334155;">🔒 Deltabase Realtime & Cold Backup Webhook Connections</h4>
         <div class="grid">
           <div>
-            <label>Supabase Project URL:</label>
-            <input type="text" id="cfgSupabaseUrl" placeholder="https://xyzproject.supabase.co">
+            <label>Deltabase Project URL:</label>
+            <input type="password" id="cfgSupabaseUrl" placeholder="https://xyzproject.supabase.co" autocomplete="off">
           </div>
           <div>
-            <label>Supabase Anon Public API Key:</label>
-            <input type="password" id="cfgSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+            <label>Deltabase Anon Public API Key:</label>
+            <input type="password" id="cfgSupabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." autocomplete="off">
           </div>
           <div>
-            <label>Google Apps Script Web App URL (Cold Backup):</label>
-            <input type="text" id="cfgScriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+            <label>Cold Backup Webhook URL (Database Url):</label>
+            <input type="password" id="cfgScriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
           </div>
           <div>
             <label>Google Gemini API Key:</label>
-            <input type="password" id="cfgGeminiKeyInput" placeholder="AIzaSy...">
+            <input type="password" id="cfgGeminiKeyInput" placeholder="AIzaSy..." autocomplete="off">
           </div>
         </div>
         
         <button type="button" class="action-btn" style="background:#334155; margin-top:12px; width:100%;" onclick="saveSystemCredentials()">💾 Save Connection Parameters</button>
 
-        <!-- INITIAL DATABASE MIGRATION ENGINE -->
+        <!-- COLD BACKUP & RESTORE ENGINE -->
         <div style="margin-top: 20px; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
-          <h4 style="margin: 0 0 6px 0; color: #008055;">🚀 Initial Supabase Cloud Migration</h4>
+          <h4 style="margin: 0 0 6px 0; color: #0d5c75;">☁️ Unified Cold Backup & Restore</h4>
           <p style="font-size: 11px; color: #64748b; margin-top: 0; margin-bottom: 10px;">
-            Upload all local IndexedDB patient files and past clinical visits to Supabase in structured batches. Run this once on your primary device.
+            Backup or restore patients, past appointment records, clinic branding, and catalogs to/from Cold Backup storage simultaneously.
+          </p>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="action-btn btn-sync" style="background: #2e7d32; padding: 10px; font-size: 12px; flex: 1;" onclick="syncAllToSheets()">
+              ☁️ Backup All Data & Presets to Cold Backup
+            </button>
+            <button type="button" class="action-btn" style="background: #0d5c75; padding: 10px; font-size: 12px; flex: 1;" onclick="importFromGoogleSheets()">
+              📥 Download & Restore from Cold Backup
+            </button>
+          </div>
+        </div>
+
+        <!-- INITIAL DELTABASE MIGRATION ENGINE -->
+        <div style="margin-top: 20px; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
+          <h4 style="margin: 0 0 6px 0; color: #008055;">🚀 Initial Deltabase Cloud Migration</h4>
+          <p style="font-size: 11px; color: #64748b; margin-top: 0; margin-bottom: 10px;">
+            Upload all local IndexedDB patient files and past clinical visits to Deltabase in structured batches. Run this once on your primary device.
           </p>
           <button type="button" class="action-btn" style="background: #008055; width: 100%; padding: 10px;" onclick="uploadWholeDatabaseToSupabase()">
-            🚀 Upload Entire Local Database to Supabase
+            🚀 Upload Entire Local Database to Deltabase
           </button>
         </div>
       </div>
@@ -1219,10 +1244,17 @@
 
   request.onsuccess = function(event) {
     db = event.target.result;
+    window.db = db; // Critical: fixes Realtime listeners checking window.db
     document.getElementById('statusMsg').innerText = "IndexedDB Ready. Working 100% Offline.";
     updateTodayAppointmentCount();
     updatePatientCache();
     renderTodayQueueUI();
+    // Auto-pull changes from Supabase once local database is ready
+    if (typeof pullSupabaseDeltas === 'function') {
+      pullSupabaseDeltas(false);
+    }
+// Check if daily cold backup to Google Sheets is due
+    checkAndTriggerDailySheetsBackup();
   };
 
   function switchTab(tabId) {
@@ -1243,11 +1275,48 @@
     }
   }
 
+  function setQueueToToday() {
+    const picker = document.getElementById('queueDateFilter');
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    if (picker) picker.value = `${y}-${m}-${d}`;
+    renderTodayQueueUI();
+  }
+
   function renderTodayQueueUI() {
     if (!db) return;
-    const todayStr = formatDateOnly(new Date());
     const tbody = document.getElementById('todayQueueResults');
     if (!tbody) return;
+
+    // Ensure the date picker is initialized to today if empty
+    const picker = document.getElementById('queueDateFilter');
+    const now = new Date();
+    const todayStr = formatDateOnly(now);
+
+    if (picker && !picker.value) {
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      picker.value = `${y}-${m}-${d}`;
+    }
+
+    // Convert picker value (YYYY-MM-DD) to app format (DD/MM/YYYY)
+    let selectedDateStr = todayStr;
+    if (picker && picker.value) {
+      const parts = picker.value.split('-');
+      if (parts.length === 3) {
+        selectedDateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+    }
+
+    const heading = document.getElementById('queueTabHeading');
+    if (heading) {
+      heading.innerText = (selectedDateStr === todayStr) 
+        ? `📅 Today's Appointments (${selectedDateStr})` 
+        : `📅 Appointments on ${selectedDateStr}`;
+    }
 
     const tx = db.transaction(["appointments"], "readonly");
     const aStore = tx.objectStore("appointments");
@@ -1255,20 +1324,20 @@
 
     req.onsuccess = function() {
       const allAppts = req.result || [];
-      const todayAppts = allAppts.filter(a => {
+      const filteredAppts = allAppts.filter(a => {
         if (!a.date) return false;
         const apptDateStr = String(a.date).includes('/') ? String(a.date).trim() : formatDateOnly(a.date);
-        return apptDateStr === todayStr;
+        return apptDateStr === selectedDateStr;
       });
 
-      if (todayAppts.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #888; padding: 20px;">No appointments recorded for today yet.</td></tr>';
+      if (filteredAppts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #888; padding: 20px;">No appointments recorded for ${selectedDateStr}.</td></tr>`;
         return;
       }
 
-      todayAppts.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      filteredAppts.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
-      tbody.innerHTML = todayAppts.map((a, idx) => {
+      tbody.innerHTML = filteredAppts.map((a, idx) => {
         const pInfo = globalPatientMapCache[a.patientId] || {};
         const prefix = getMyanmarPrefix(pInfo.age, pInfo.sex);
         const pName = pInfo.name ? `${prefix}${pInfo.name}` : (a.patientName || 'Unknown Patient');
@@ -1786,7 +1855,7 @@
       if (badge) {
         badge.style.background = '#e2e8f0';
         badge.style.color = '#475569';
-        badge.innerText = '⚡ Supabase: Not Configured';
+        badge.innerText = '⚡ Deltabase: Not Configured';
       }
       return;
     }
@@ -1796,21 +1865,20 @@
       if (badge) {
         badge.style.background = '#d4edda';
         badge.style.color = '#155724';
-        badge.innerText = '⚡ Supabase: Online';
+        badge.innerText = '⚡ Deltabase: Online';
       }
 
       setupSupabaseRealtimeSubscriptions();
       pullSupabaseDeltas(false);
-// 1. Push any pending offline records right after connecting
-      pushPendingToSupabase();
 
-      // 2. Listen for the browser coming back online
+pushPendingToSupabase();
+
       window.addEventListener('online', () => {
         const b = document.getElementById('supabaseStatusBadge');
         if (b) {
           b.style.background = '#d4edda';
           b.style.color = '#155724';
-          b.innerText = '⚡ Supabase: Online';
+          b.innerText = '⚡ Deltabase: Online';
         }
         pushPendingToSupabase();
         pullSupabaseDeltas(false);
@@ -1821,22 +1889,34 @@
         if (b) {
           b.style.background = '#fff3cd';
           b.style.color = '#856404';
-          b.innerText = '⚡ Supabase: Working Offline';
+          b.innerText = '⚡ Deltabase: Working Offline';
         }
       });
 
-      // 3. Periodic background check every 30 seconds
+      // Auto-pull whenever you switch to or click into the desktop app window
+      window.addEventListener('focus', () => {
+        if (navigator.onLine) pullSupabaseDeltas(false);
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && navigator.onLine) {
+          pullSupabaseDeltas(false);
+        }
+      });
+
+      // Periodic 30-second bidirectional heartbeat (both pushes and pulls)
       setInterval(() => {
         if (navigator.onLine) {
           pushPendingToSupabase();
+          pullSupabaseDeltas(false);
         }
       }, 30000);
+
     } catch(err) {
       console.error("Supabase init error:", err);
       if (badge) {
         badge.style.background = '#f8d7da';
         badge.style.color = '#721c24';
-        badge.innerText = '⚡ Supabase: Error';
+        badge.innerText = '⚡ Deltabase: Error';
       }
     }
   }
@@ -1940,6 +2020,10 @@
   function applyIncomingSetting(key, val) {
     if (!key || val === undefined || val === null) return;
 
+    if (key === 'clinic_logo') {
+      if (val) localStorage.setItem('floca_clinic_logo', val);
+      injectPrintBranding();
+    }
     if (key === 'clinic_profile') {
       localStorage.setItem('floca_clinic_profile', JSON.stringify(val));
       CLINIC_PROFILE = Object.assign({}, DEFAULT_CLINIC_PROFILE, val);
@@ -2132,8 +2216,17 @@
   // PAGINATED DELTA SYNC ENGINE (NO 1,000 ROW CEILING)
   // PAGINATED DELTA SYNC ENGINE (WITH EMPTY-DB RESILIENCE)
   async function pullSupabaseDeltas(userInitiated = false) {
-    pushPendingToSupabase();
+    // 1. Wait up to 3 seconds for IndexedDB if the page just loaded
+    if (!db) {
+      let retries = 0;
+      while (!db && retries < 15) {
+        await new Promise(r => setTimeout(r, 200));
+        retries++;
+      }
+    }
     if (!supabaseClient || !db) return;
+
+    pushPendingToSupabase();
 
     // Inspect local DB: If local patients table is empty, force lastSync = 0
     const localPatientCount = await new Promise((resolve) => {
@@ -2262,7 +2355,7 @@
       localStorage.setItem('floca_last_sb_sync', nowMs.toString());
 
       if (userInitiated) {
-        alert(`⚡ Supabase Delta Sync Complete!\n• New/Updated Patients: ${pData.length}\n• New/Updated Visits: ${aData.length}\n• Updated Settings/Catalogs: ${sData ? sData.length : 0}`);
+        alert(`⚡ Deltabase Sync Complete!\n• New/Updated Patients: ${pData.length}\n• New/Updated Visits: ${aData.length}\n• Updated Settings/Catalogs: ${sData ? sData.length : 0}`);
       }
     } catch(err) {
       console.error("Delta pull failed:", err);
@@ -2271,7 +2364,7 @@
   }
 
   async function uploadWholeDatabaseToSupabase() {
-    if (!supabaseClient) return alert("Please configure and save your Supabase Project URL and API Key first.");
+    if (!supabaseClient) return alert("Please configure and save your Deltabase Project URL and API Key first.");
     if (!db) return alert("Database is not ready yet.");
 
     const txP = db.transaction(["patients"], "readonly");
@@ -2281,17 +2374,17 @@
     const allAppts = await new Promise(r => txA.objectStore("appointments").getAll().onsuccess = e => r(e.target.result || []));
 
     const confirmUpload = confirm(
-      `🚀 MIGRATE DATABASE TO SUPABASE\n\n` +
-      `Found in Local Storage:\n` +
-      `• ${allPatients.length} Patient Profile(s)\n` +
-      `• ${allAppts.length} Appointment Record(s)\n\n` +
-      `Upload all records to Supabase now?`
-    );
+  `🚀 MIGRATE DATABASE TO DELTABASE\n\n` +
+  `Found in Local Storage:\n` +
+  `• ${allPatients.length} Patient Profile(s)\n` +
+  `• ${allAppts.length} Appointment Record(s)\n\n` +
+  `Upload all records to Deltabase now?`
+);
     if (!confirmUpload) return;
 
     const statusEl = document.getElementById('statusMsg');
     try {
-      statusEl.innerText = "Migrating patients to Supabase...";
+      statusEl.innerText = "Migrating patients to Deltabase...";
       const nowMs = Date.now();
 
       // Helper to guarantee BIGINT millisecond epoch numbers
@@ -2360,7 +2453,7 @@
       }
 
       // 2. Format and Upload Appointments
-      statusEl.innerText = "Migrating appointments to Supabase...";
+      statusEl.innerText = "Migrating appointments to Deltabase...";
       const formattedAppts = allAppts.filter(a => a.appointmentId && a.patientId).map(a => {
         const pInfo = globalPatientMapCache[a.patientId] || {};
         return {
@@ -2390,7 +2483,7 @@
       }
 
       // 3. Upload Clinic Presets & Catalogs
-      statusEl.innerText = "Migrating clinic presets to Supabase...";
+      statusEl.innerText = "Migrating clinic presets to Deltabase...";
       const settingsBatch = [
         { setting_key: 'clinic_profile', setting_val: CLINIC_PROFILE, updated_at: nowMs },
         { setting_key: 'quick_pick_drugs', setting_val: GLOBAL_QUICK_PICK_DRUGS, updated_at: nowMs },
@@ -2404,11 +2497,11 @@
       await supabaseClient.from('clinic_settings').upsert(settingsBatch);
 
       localStorage.setItem('floca_last_sb_sync', nowMs.toString());
-      statusEl.innerText = "Supabase full database migration complete.";
+      statusEl.innerText = "Deltabase full database migration complete.";
       alert(`🎉 Migration Successful!\n\nUploaded:\n• ${totalPatientsToUpload.length} Patients\n• ${formattedAppts.length} Appointments\n• Clinic Presets & Catalogs`);
     } catch(err) {
       console.error("Migration error:", err);
-      statusEl.innerText = "Supabase migration failed.";
+      statusEl.innerText = "Deltabase migration failed.";
       alert(`❌ Migration Failed: ${err.message || err.toString()}`);
     }
   }
@@ -3171,9 +3264,8 @@ function handleLogoUpload(input) {
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
 
-  // Optional: Prevent localStorage bloat by checking file size (< 1.5MB recommended)
-  if (file.size > 1.5 * 1024 * 1024) {
-    alert("Please select a logo smaller than 1.5MB.");
+  if (file.size > 2 * 1024 * 1024) {
+    alert("Please select an image smaller than 2MB.");
     input.value = "";
     return;
   }
@@ -3190,24 +3282,17 @@ function handleLogoUpload(input) {
       preview.style.display = 'inline-block';
     }
 
-    // Push to Supabase settings if configured
+    // Immediately reflect on print elements
+    injectPrintBranding();
+
+    // Push to Deltabase settings if configured
     if (typeof pushSettingToSupabase === 'function') {
       pushSettingToSupabase('clinic_logo', base64Data);
     }
     
-    alert("✅ Logo updated successfully!");
+    alert("✅ Logo uploaded and saved permanently!");
   };
   reader.readAsDataURL(file);
-}
-
-function removeCustomLogo() {
-  localStorage.removeItem('floca_clinic_logo');
-  const preview = document.getElementById('cfgLogoPreview');
-  if (preview) preview.src = "logo.png";
-  if (typeof pushSettingToSupabase === 'function') {
-    pushSettingToSupabase('clinic_logo', null);
-  }
-  alert("Reverted to default logo.");
 }
 
   const DEFAULT_CLINIC_PROFILE = {
@@ -3273,11 +3358,16 @@ function removeCustomLogo() {
   function injectPrintBranding() {
     loadClinicProfileFromStorage();
 
-const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
-  document.querySelectorAll('.clinic-logo-img, #printPatientCard img, #printPrescription img, .rx-header img').forEach(img => {
-    img.src = customLogo;
-    img.style.display = 'inline-block';
-  });
+    const customLogo = localStorage.getItem('floca_clinic_logo');
+    document.querySelectorAll('.clinic-logo-img, #printPatientCard img, #printPrescription img, .rx-header img').forEach(img => {
+      if (customLogo) {
+        img.src = customLogo;
+        img.style.display = 'inline-block';
+      } else {
+        img.removeAttribute('src');
+        img.style.display = 'none';
+      }
+    });
 
     // 1. Text elements using English Clinic Name
     const enNameElements = [
@@ -3313,6 +3403,17 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
 
   function renderSettingsUI() {
     // 0. Populate Clinic Branding Settings
+
+const savedLogo = localStorage.getItem('floca_clinic_logo');
+    const preview = document.getElementById('cfgLogoPreview');
+    if (preview) {
+      if (savedLogo) {
+        preview.src = savedLogo;
+        preview.style.display = 'inline-block';
+      } else {
+        preview.style.display = 'none';
+      }
+    }
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
     setVal('cfgClinicNameEn', CLINIC_PROFILE.nameEn);
     setVal('cfgClinicNameMm', CLINIC_PROFILE.nameMm);
@@ -3632,17 +3733,17 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
     if (!db) return alert("Database not ready yet.");
 
     const scriptUrl = window.getScriptUrl();
-    if (!scriptUrl) return alert("Google Apps Script URL is required to import data.");
+    if (!scriptUrl) return alert("Cold Back Up URL is required to import data.");
 
     const confirmImport = confirm(
-      "📥 FAST FULL DATABASE DOWNLOAD FROM GOOGLE SHEETS\n\n" +
-      "This will download your complete backup and write it to IndexedDB in a single fast batch.\n\n" +
-      "Proceed with loading Google Sheets data?"
-    );
+  "📥 FAST FULL DATABASE DOWNLOAD FROM COLD BACKUP\n\n" +
+  "This will download your complete backup and write it to IndexedDB in a single fast batch.\n\n" +
+  "Proceed with loading Cold Backup data?"
+);
     if (!confirmImport) return;
 
     try {
-      document.getElementById('statusMsg').innerText = "Downloading database snapshot from Google Sheets...";
+      document.getElementById('statusMsg').innerText = "Downloading database snapshot from Cold Backup...";
       const response = await fetch(scriptUrl, { method: "GET", redirect: "follow" });
       if (!response.ok) throw new Error("HTTP Error: " + response.status);
       
@@ -3742,6 +3843,9 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
       // 3. FAST IMPORT: CLINIC PRESETS & SETTINGS
       if (data.settings && typeof data.settings === 'object') {
         const s = data.settings;
+	if (s.clinic_logo) {
+          localStorage.setItem('floca_clinic_logo', s.clinic_logo);
+        }
         if (s.clinic_profile) {
           localStorage.setItem('floca_clinic_profile', JSON.stringify(s.clinic_profile));
           CLINIC_PROFILE = Object.assign({}, DEFAULT_CLINIC_PROFILE, s.clinic_profile);
@@ -3793,12 +3897,21 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
     }
   }
 
-  async function syncAllToSheets() {
-    if (!navigator.onLine) return alert("Internet connection required to backup records.");
-    if (!db) return alert("Database is not ready yet.");
+  async function syncAllToSheets(isAuto = false) {
+    if (!navigator.onLine) {
+      if (!isAuto) alert("Internet connection required to backup records.");
+      return;
+    }
+    if (!db) {
+      if (!isAuto) alert("Database is not ready yet.");
+      return;
+    }
 
     const scriptUrl = window.getScriptUrl();
-    if (!scriptUrl) return alert("Google Apps Script URL is required to backup data.");
+    if (!scriptUrl) {
+      if (!isAuto) alert("Cold Back Up URL is required to backup data.");
+      return;
+    }
 
     const txPR = db.transaction(["patients"], "readonly");
     const allPatients = await new Promise(r => txPR.objectStore("patients").getAll().onsuccess = e => r(e.target.result || []));
@@ -3811,32 +3924,55 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
     const txAR = db.transaction(["appointments"], "readonly");
     const allAppts = await new Promise(r => txAR.objectStore("appointments").getAll().onsuccess = e => r(e.target.result || []));
 
-    // Ensure all appointments have proper patient names and sex
     allAppts.forEach(a => {
       const pInfo = pNameMap[a.patientId] || globalPatientMapCache[a.patientId] || {};
       a.patientName = a.patientName || pInfo.name || "";
       a.sex = a.sex || pInfo.sex || "Male";
     });
 
-    const confirmSync = confirm(
-      "☁️ FAST FULL DATABASE BACKUP TO GOOGLE SHEETS\n\n" +
-      "Records to Write:\n" +
-      "• " + allPatients.length + " Patient Profile(s)\n" +
-      "• " + allAppts.length + " Appointment Record(s)\n\n" +
-      "This will snapshot your entire database into Google Sheets in a single fast chunk operation. Proceed?"
-    );
-    if (!confirmSync) return;
+    // Package all current local configurations & catalogs
+    const currentSettings = {
+      clinic_profile: JSON.parse(localStorage.getItem('floca_clinic_profile') || '{}'),
+      clinic_logo: localStorage.getItem('floca_clinic_logo') || '',
+      quick_pick_drugs: GLOBAL_QUICK_PICK_DRUGS,
+      drug_rules: ALLERGY_GROUPS,
+      interaction_rules: INTERACTION_RULES,
+      lab_catalog: GLOBAL_LAB_CATALOG,
+      imaging_catalog: GLOBAL_IMG_CATALOG,
+      rapid_catalog: GLOBAL_RAPID_CATALOG,
+      vaccine_protocols: JSON.parse(localStorage.getItem('floca_vaccine_protocols') || '{}')
+    };
 
-    const syncBtn = document.querySelector('.btn-sync');
-    if (syncBtn) syncBtn.disabled = true;
+    if (!isAuto) {
+      const confirmSync = confirm(
+        "☁️ UNIFIED FULL BACKUP TO Cold Back Up\n\n" +
+        "Records to Snapshot:\n" +
+        "• " + allPatients.length + " Patient Profile(s)\n" +
+        "• " + allAppts.length + " Appointment Record(s)\n" +
+        "• Complete Clinic Settings, Drug Rules & Catalogs\n\n" +
+        "This will update all three tabs (Patients, Appointments, Settings) in Cold Back Up. Proceed?"
+      );
+      if (!confirmSync) return;
+    }
 
     try {
-      document.getElementById('statusMsg').innerText = "Uploading complete database snapshot to Google Sheets...";
+      const statusPrefix = isAuto ? "[Daily Auto-Backup] " : "";
+      document.getElementById('statusMsg').innerText = statusPrefix + "Uploading database & presets to Cold Back Up...";
+
+      const sbUrl = localStorage.getItem('floca_supabase_url') || '';
+      const sbKey = localStorage.getItem('floca_supabase_key') || '';
+      const gemKey = localStorage.getItem('floca_gemini_key') || '';
 
       const payload = {
         type: "full_backup_overwrite",
         patients: allPatients,
-        appointments: allAppts
+        appointments: allAppts,
+        settings: currentSettings,
+        supabase_creds: {
+          url: sbUrl,
+          key: sbKey
+        },
+        gemini_key: gemKey
       };
 
       const res = await fetch(scriptUrl, {
@@ -3858,59 +3994,48 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
         allAppts.forEach(a => { a.synced = 1; aStore.put(a); });
         await new Promise(r => txAW.oncomplete = r);
 
-        alert("✅ Fast Snapshot Backup Complete!\n\nSynchronized:\n• " + result.patientsCount + " Patients\n• " + result.appointmentsCount + " Visits");
-        document.getElementById('statusMsg').innerText = "Google Sheet cold backup complete.";
+        localStorage.setItem('floca_last_sheets_auto_backup', Date.now().toString());
 
         updatePatientStatus('synced', '☁️ Synced');
         updateApptStatus('synced', '☁️ Synced');
         updateTodayAppointmentCount();
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('statusMsg').innerText = `☁️ Cold Back Up completed (${timeStr}). All data secure.`;
+
+        if (!isAuto) {
+          alert(`✅ Unified Backup Successful!\n\nSynchronized:\n• ${result.patientsCount} Patients\n• ${result.appointmentsCount} Appointments\n• Clinic Presets & Catalogs`);
+        }
       } else {
-        throw new Error(result.error || "Server rejected snapshot upload");
+        throw new Error(result.error || "Server rejected backup upload");
       }
     } catch(err) {
       console.error("Backup error:", err);
-      alert("❌ Backup Failed:\n" + err.message + "\n\nYour data remains safely stored locally in IndexedDB.");
-      document.getElementById('statusMsg').innerText = "Backup failed. Data safe locally.";
-    } finally {
-      if (syncBtn) syncBtn.disabled = false;
+      if (!isAuto) {
+        alert("❌ Backup Failed:\n" + err.message + "\n\nYour data remains safe in IndexedDB.");
+      }
+      document.getElementById('statusMsg').innerText = "Backup skipped or failed. Local data remains safe.";
     }
   }
 
-async function uploadSettingsToGoogleSheets() {
-    const scriptUrl = window.getScriptUrl();
-    if (!scriptUrl) return alert("Google Apps Script URL required.");
+function checkAndTriggerDailySheetsBackup() {
+    if (!navigator.onLine) return;
+    const scriptUrl = localStorage.getItem('floca_script_url');
+    if (!scriptUrl) return; // Silent return if user hasn't configured Google Apps Script yet
 
-    const settingsPayload = {
-      type: "save_settings",
-      settings: {
-        clinic_profile: JSON.parse(localStorage.getItem('floca_clinic_profile') || '{}'),
-        quick_pick_drugs: GLOBAL_QUICK_PICK_DRUGS,
-        drug_rules: ALLERGY_GROUPS,
-        interaction_rules: INTERACTION_RULES,
-        lab_catalog: GLOBAL_LAB_CATALOG,
-        imaging_catalog: GLOBAL_IMG_CATALOG,
-        rapid_catalog: GLOBAL_RAPID_CATALOG,
-        vaccine_protocols: JSON.parse(localStorage.getItem('floca_vaccine_protocols') || '{}')
-      }
-    };
+    const lastBackup = parseInt(localStorage.getItem('floca_last_sheets_auto_backup') || '0', 10);
+    const TWENTY_HOURS_MS = 20 * 60 * 60 * 1000;
 
-    try {
-      document.getElementById('statusMsg').innerText = "Uploading clinic presets to Google Sheet...";
-      const res = await fetch(scriptUrl, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(settingsPayload)
-      });
-      const result = await res.json();
-      if (result.result === "success") {
-        alert("✅ All clinic presets, drug rules, and catalogs successfully saved to Google Sheets!");
-        document.getElementById('statusMsg').innerText = "Clinic settings backed up.";
-      }
-    } catch(err) {
-      console.error(err);
-      alert("Failed to upload settings: " + err.message);
+    // Trigger only if 20 hours have passed since the previous cold backup
+    if (Date.now() - lastBackup > TWENTY_HOURS_MS) {
+      console.log("20-hour window elapsed. Scheduling silent daily Google Sheet backup...");
+      // Delay 15 seconds to ensure system boot & Supabase pull are completely finished
+      setTimeout(() => {
+        syncAllToSheets(true);
+      }, 15000);
     }
   }
+
 
   function printPatientCard() {
 injectPrintBranding();
@@ -5192,7 +5317,7 @@ injectPrintBranding();
 <!-- TEMPLATE 1: PATIENT CLINIC COVER CARD -->
 <div id="printPatientCard" class="print-page">
   <div class="card-header-single">
-    <img src="logo.png" alt="MD Logo" class="clinic-logo-img">
+    <img alt="Clinic Logo" class="clinic-logo-img" style="display: none;">
     <div id="cardClinicNameMm" class="clinic-name-myanmar"></div>
     <div id="cardClinicAddress" class="clinic-address-text"></div>
     <div id="cardClinicHours" class="clinic-hours-text"></div>
@@ -5219,7 +5344,7 @@ injectPrintBranding();
   <div class="print-page-break"></div>
 
   <div class="card-header-single">
-    <div id="cardClinicNameEn" style="font-size: 22px; font-weight: bold; color: #00a0e9; margin-bottom: 4px;"></div>
+    <div id="cardClinicNameEn" style="font-size: 22px; font-weight: bold; color: #008055; margin-bottom: 4px;"></div>
     <div style="font-size: 16px; font-weight: bold;">Patient Medical Background & Baseline Summary</div>
   </div>
 
@@ -5249,7 +5374,7 @@ injectPrintBranding();
 <div id="printPrescription" class="print-page">
   <div class="rx-header">
     <div>
-      <div id="rxClinicTitle" style="font-size:22px; font-weight:bold; color:#00a0e9;"></div>
+      <div id="rxClinicTitle" style="font-size:22px; font-weight:bold; color:#008055;"></div>
       <div id="rxClinicSubtitle" style="font-size:13px; color:#333;"></div>
     </div>
     <div style="text-align:right; font-size:13px;">
@@ -5299,9 +5424,9 @@ injectPrintBranding();
 <div id="printLabForm" class="print-page">
   <div class="rx-header">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <img src="logo.png" alt="MD Logo" style="max-width: 100px; height: auto;">
+      <img alt="Clinic Logo" class="clinic-logo-img" style="display: none;">
       <div>
-        <div id="labClinicTitle" style="font-size: 20px; font-weight: bold; color: #00a0e9;"></div>
+        <div id="labClinicTitle" style="font-size: 20px; font-weight: bold; color: #008055;"></div>
         <div id="labClinicSubtitle" style="font-size: 12px; color: #333;"></div>
       </div>
     </div>
@@ -5343,9 +5468,9 @@ injectPrintBranding();
 <div id="printImagingForm" class="print-page">
   <div class="rx-header">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <img src="logo.png" alt="MD Logo" style="max-width: 100px; height: auto;">
+      <img alt="Clinic Logo" class="clinic-logo-img" style="display: none;">
       <div>
-        <div id="imgClinicTitle" style="font-size: 20px; font-weight: bold; color: #00a0e9;"></div>
+        <div id="imgClinicTitle" style="font-size: 20px; font-weight: bold; color: #008055;"></div>
         <div id="imgClinicSubtitle" style="font-size: 12px; color: #333;"></div>
       </div>
     </div>
@@ -5397,9 +5522,9 @@ injectPrintBranding();
 <div id="printReferralForm" class="print-page">
   <div class="rx-header">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <img src="logo.png" alt="MD Logo" style="max-width: 100px; height: auto;">
+      <img alt="Clinic Logo" class="clinic-logo-img" style="display: none;">
       <div>
-        <div id="refClinicTitle" style="font-size: 20px; font-weight: bold; color: #00a0e9;"></div>
+        <div id="refClinicTitle" style="font-size: 20px; font-weight: bold; color: #008055;"></div>
         <div id="refClinicSubtitle" style="font-size: 12px; color: #333;"></div>
       </div>
     </div>
@@ -5474,9 +5599,9 @@ injectPrintBranding();
 <div id="printMcForm" class="print-page">
   <div class="rx-header">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <img src="logo.png" alt="MD Logo" style="max-width: 100px; height: auto;">
+      <img alt="Clinic Logo" class="clinic-logo-img" style="display: none;">
       <div>
-        <div id="mcClinicTitle" style="font-size: 20px; font-weight: bold; color: #00a0e9;"></div>
+        <div id="mcClinicTitle" style="font-size: 20px; font-weight: bold; color: #008055;"></div>
         <div style="font-size: 13px; color: #555;">Official Medical Document</div>
       </div>
     </div>
@@ -5520,9 +5645,9 @@ injectPrintBranding();
 <div id="printFitForm" class="print-page">
   <div class="rx-header">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <img src="logo.png" alt="MD Logo" style="max-width: 100px; height: auto;">
+      <img alt="Clinic Logo" class="clinic-logo-img" style="display: none;">
       <div>
-        <div id="fitClinicTitle" style="font-size: 20px; font-weight: bold; color: #00a0e9;"></div>
+        <div id="fitClinicTitle" style="font-size: 20px; font-weight: bold; color: #008055;"></div>
         <div style="font-size: 13px; color: #555;">Official Medical Clearance Document</div>
       </div>
     </div>
@@ -5657,9 +5782,9 @@ injectPrintBranding();
 <div id="printPocForm" class="print-page">
   <div class="rx-header">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <img src="logo.png" alt="MD Logo" style="max-width: 100px; height: auto;">
+      <img alt="Clinic Logo" class="clinic-logo-img" style="display: none;">
       <div>
-        <div id="pocClinicTitle" style="font-size: 20px; font-weight: bold; color: #00a0e9;"></div>
+        <div id="pocClinicTitle" style="font-size: 20px; font-weight: bold; color: #008055;"></div>
         <div style="font-size: 13px; font-weight: bold; color: #008055; margin-top: 4px;">POINT-OF-CARE DIAGNOSTIC REPORT</div>
       </div>
     </div>
@@ -5702,9 +5827,9 @@ injectPrintBranding();
 <div id="printVaccineForm" class="print-page">
   <div class="rx-header">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <img src="logo.png" alt="MD Logo" style="max-width: 100px; height: auto;">
+      <img alt="Clinic Logo" class="clinic-logo-img" style="display: none;">
       <div>
-        <div id="vaxClinicTitle" style="font-size: 20px; font-weight: bold; color: #00a0e9;"></div>
+        <div id="vaxClinicTitle" style="font-size: 20px; font-weight: bold; color: #008055;"></div>
         <div id="vaxClinicSubtitle" style="font-size: 12px; color: #333;"></div>
       </div>
     </div>
@@ -5749,9 +5874,9 @@ injectPrintBranding();
 <div id="printBpChart" class="print-page">
   <div class="rx-header">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <img src="logo.png" alt="MD Logo" style="max-width: 100px; height: auto;">
+      <img alt="Clinic Logo" class="clinic-logo-img" style="display: none;">
       <div>
-        <div id="bpClinicTitle" style="font-size: 20px; font-weight: bold; color: #00a0e9;"></div>
+        <div id="bpClinicTitle" style="font-size: 20px; font-weight: bold; color: #008055;"></div>
         <div id="bpClinicSubtitle" style="font-size: 12px; color: #333;"></div>
       </div>
     </div>
@@ -5802,9 +5927,9 @@ injectPrintBranding();
 <div id="printSugarChart" class="print-page">
   <div class="rx-header">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <img src="logo.png" alt="MD Logo" style="max-width: 100px; height: auto;">
+      <img alt="Clinic Logo" class="clinic-logo-img" style="display: none;">
       <div>
-        <div id="sugarClinicTitle" style="font-size: 20px; font-weight: bold; color: #00a0e9;"></div>
+        <div id="sugarClinicTitle" style="font-size: 20px; font-weight: bold; color: #008055;"></div>
         <div id="sugarClinicSubtitle" style="font-size: 12px; color: #333;"></div>
       </div>
     </div>
