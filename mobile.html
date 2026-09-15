@@ -63,6 +63,21 @@
       cursor: pointer;
     }
 
+/* Dynamic Save Status Badges for Mobile */
+    .status-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+      display: inline-block;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .badge-unsaved { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    .badge-local { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .badge-synced { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+
     /* Network Badge */
     .status-strip {
       background: #e2e8f0;
@@ -184,6 +199,15 @@
       cursor: pointer;
     }
 
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] { 
+  -moz-appearance: textfield; 
+}
+
     /* Action Buttons */
     .btn {
       width: 100%;
@@ -291,8 +315,8 @@
       body { background-color: white; padding: 0; color: #000; font-family: 'Segoe UI', 'Padauk', Arial, sans-serif; }
       .mobile-header, .status-strip, .bottom-nav, .tab-view, .btn, .modal-overlay, #geminiAssistantCardMobile { display: none !important; }
       
-      body.printing-card #printPatientCard { display: block !important; }
       body.printing-rx #printPrescription { display: block !important; }
+      body.printing-card #printPatientCard { display: block !important; }
 
       .print-page { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; box-sizing: border-box; }
 
@@ -359,6 +383,12 @@
         ➕ New Patient
       </button>
     </div>
+    <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 10px;">
+      <input type="date" id="mobileQueueDateFilter" style="margin: 0; padding: 6px 8px; font-size: 13px; font-weight: bold; border: 1px solid #008055; border-radius: 6px; color: #008055;" onchange="renderQueue()">
+      <button type="button" class="btn" style="margin: 0; width: auto; padding: 6px 12px; font-size: 12px; background: #64748b; color: white;" onclick="setMobileQueueToday()">
+        Today
+      </button>
+    </div>
     <div id="queueList">Loading appointments...</div>
   </div>
 
@@ -376,7 +406,10 @@
     <!-- Patient Demographic Card -->
     <div class="card">
       <div class="card-title">
-        <span>1. Patient Profile</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span>1. Patient Profile</span>
+          <span id="pSaveStatusMobile" class="status-badge badge-synced">🟢 Saved</span>
+        </div>
         <button type="button" style="background:none; border:none; color:#0284c7; font-size:11px; font-weight:700; cursor:pointer;" onclick="startNewPatient()">➕ New ID</button>
       </div>
 
@@ -387,7 +420,7 @@
         </div>
         <div>
           <label>Age <span class="required">*</span></label>
-          <input type="number" id="pAge" placeholder="28">
+          <input type="number" id="pAge" placeholder="28" onwheel="this.blur()">
         </div>
       </div>
 
@@ -444,7 +477,10 @@
     <!-- Appointment & Treatment Card with Historical Visit Dropdown -->
     <div class="card">
       <div class="card-title">
-        <span>2. Clinical Visit History</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span>2. Clinical Visit History</span>
+          <span id="aSaveStatusMobile" class="status-badge badge-synced">🟢 Saved</span>
+        </div>
         <button type="button" style="background:none; border:none; color:#0284c7; font-size:11px; font-weight:700; cursor:pointer;" onclick="forceNewAppointmentId()">➕ New Visit</button>
       </div>
 
@@ -553,36 +589,33 @@
   <div id="settingsModal" class="modal-overlay">
     <div class="modal-sheet">
       <div class="modal-header">
-        <h3 style="margin:0; font-size:15px; color:#008055;">⚙️ Supabase Cloud & Gemini Setup</h3>
+        <h3 style="margin:0; font-size:15px; color:#008055;">⚙️ System Configuration</h3>
         <button style="border:none; background:none; font-size:20px;" onclick="closeSettingsModal()">&times;</button>
       </div>
 
-<div style="margin-top: 10px;">
-  <label>Clinic Logo (Prints on Cover Cards & Forms):</label>
-  <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
-    <img id="cfgLogoPreview" src="logo.png" style="max-height: 48px; max-width: 100px; border: 1px solid #ccc; border-radius: 4px; padding: 2px;" onerror="this.style.display='none'">
-    <input type="file" id="cfgLogoInput" accept="image/*" style="font-size: 12px;" onchange="handleLogoUpload(this)">
-    <button type="button" class="btn btn-outline" style="width: auto; padding: 6px 10px; font-size: 11px; margin: 0;" onclick="removeCustomLogo()">Reset Default</button>
-  </div>
-</div>
+      <div style="margin-top: 10px;">
+        <label>Clinic Logo (Prints on Cover Cards & Forms):</label>
+        <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+          <img id="cfgLogoPreview" style="max-height: 48px; max-width: 100px; border: 1px solid #ccc; border-radius: 4px; padding: 2px; display: none;">
+          <input type="file" id="cfgLogoInput" accept="image/*" style="font-size: 12px;" onchange="handleLogoUpload(this)">
+        </div>
+      </div>
       
-      <label>Supabase Project URL:</label>
-      <input type="text" id="cfgSupabaseUrl" placeholder="https://xyz.supabase.co">
+      <label style="margin-top: 15px;">Cold Backup URL:</label>
+      <input type="password" id="cfgScriptUrl" placeholder="https://....../exec" autocomplete="off">
 
-      <label>Supabase Anon Public API Key:</label>
-      <input type="password" id="cfgSupabaseKey">
+      <button class="btn btn-green" style="margin-top:15px;" onclick="fetchConfigAndConnect()">
+        🔄 Fetch Credentials & Connect Cloud
+      </button>
 
-      <label>Google Gemini API Key:</label>
-      <input type="password" id="cfgGeminiKey">
-
-      <button class="btn btn-green" style="margin-top:15px;" onclick="saveMobileSettings()">💾 Save Credentials</button>
+      <div id="settingsFetchStatus" style="font-size: 11.5px; margin-top: 8px; text-align: center; color: #64748b;"></div>
     </div>
   </div>
 
   <!-- PRINT TEMPLATES -->
   <div id="printPatientCard" class="print-page">
     <div class="card-header-single">
-      <img src="logo.png" alt="MD Logo" class="clinic-logo-img" onerror="this.style.display='none'">
+      <img alt="Clinic Logo" class="clinic-logo-img" style="display: none;">
       <div id="cardClinicNameMm" class="clinic-name-myanmar"></div>
       <div id="cardClinicAddress" class="clinic-address-text"></div>
       <div id="cardClinicHours" class="clinic-hours-text"></div>
@@ -805,11 +838,17 @@
 
   function injectPrintBranding() {
     loadClinicProfileFromStorage();
-const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
-  document.querySelectorAll('.clinic-logo-img, #printPatientCard img, #printPrescription img, .rx-header img').forEach(img => {
-    img.src = customLogo;
-    img.style.display = 'inline-block';
-  });
+    const customLogo = localStorage.getItem('floca_clinic_logo');
+    document.querySelectorAll('.clinic-logo-img, #printPatientCard img, #printPrescription img, .rx-header img').forEach(img => {
+      if (customLogo) {
+        img.src = customLogo;
+        img.style.display = 'inline-block';
+      } else {
+        img.removeAttribute('src');
+        img.style.display = 'none';
+      }
+    });
+
     const rxClinicTitle = document.getElementById('rxClinicTitle');
     if (rxClinicTitle) rxClinicTitle.innerText = `🩺 ${CLINIC_PROFILE.nameEn}`;
     const cardClinicNameEn = document.getElementById('cardClinicNameEn');
@@ -843,8 +882,24 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
     updatePatientCache();
     renderQueue();
     initSupabase();
-    // Force pull deltas right after DB is confirmed active
     pullSupabaseDeltas(false);
+
+    // Attach listeners safely once DOM and functions are guaranteed ready
+    ['pName', 'pAge', 'pSex', 'pPhone', 'pAddress', 'pPmh', 'pAllergy', 'pCurrentMeds', 'pDocNote'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', markPatientUnsavedMobile);
+        el.addEventListener('change', markPatientUnsavedMobile);
+      }
+    });
+
+    ['aCc', 'aHistory', 'aBp', 'aPr', 'aSpo2', 'aDiag', 'aExam', 'aInv', 'aTreatments', 'aFollowUp', 'aDocNote'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', markApptUnsavedMobile);
+        el.addEventListener('change', markApptUnsavedMobile);
+      }
+    });
   };
 
   function switchMobileTab(tabId, btn) {
@@ -890,6 +945,7 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
     populateVisitDropdown([]);
     forceNewAppointmentId();
     switchMobileTab('consultTab', document.querySelectorAll('.nav-btn')[1]);
+    updatePatientStatusMobile('unsaved', '🟡 Unsaved');
   }
 
   function forceNewAppointmentId() {
@@ -920,7 +976,27 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
 
     checkVitalFlags();
     runSafetyChecks();
+    updateApptStatusMobile('unsaved', '🟡 Unsaved');
   }
+
+function updatePatientStatusMobile(state, text) {
+    const b = document.getElementById('pSaveStatusMobile');
+    if (b) {
+      b.className = `status-badge badge-${state}`;
+      b.innerText = text;
+    }
+  }
+
+  function updateApptStatusMobile(state, text) {
+    const b = document.getElementById('aSaveStatusMobile');
+    if (b) {
+      b.className = `status-badge badge-${state}`;
+      b.innerText = text;
+    }
+  }
+
+  function markPatientUnsavedMobile() { updatePatientStatusMobile('unsaved', '🟡 Unsaved'); }
+  function markApptUnsavedMobile() { updateApptStatusMobile('unsaved', '🟡 Unsaved'); }
 
   // =========================================================================
   // VISIT DROPDOWN & STEPPER LOGIC
@@ -1004,6 +1080,7 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
         document.getElementById('aDocNote').value = a.doctorNote || 'NR';
         checkVitalFlags();
         runSafetyChecks();
+        updateApptStatusMobile(a.synced ? 'synced' : 'local', a.synced ? '☁️ Synced' : '🟢 Saved');
       }
     };
   }
@@ -1151,23 +1228,57 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
     };
   }
 
+  function setMobileQueueToday() {
+    const picker = document.getElementById('mobileQueueDateFilter');
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    if (picker) picker.value = `${y}-${m}-${d}`;
+    renderQueue();
+  }
+
   function renderQueue() {
     if (!db) return;
-    const todayStr = formatDate(new Date());
+    const now = new Date();
+    const todayStr = formatDate(now);
+    const picker = document.getElementById('mobileQueueDateFilter');
+
+    if (picker && !picker.value) {
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      picker.value = `${y}-${m}-${d}`;
+    }
+
+    let selectedDateStr = todayStr;
+    if (picker && picker.value) {
+      const parts = picker.value.split('-');
+      if (parts.length === 3) {
+        selectedDateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+    }
+
     const tx = db.transaction(["appointments"], "readonly");
     tx.objectStore("appointments").getAll().onsuccess = (e) => {
       const all = e.target.result || [];
-      const today = all.filter(a => formatDate(a.date) === todayStr);
-      today.sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      const filtered = all.filter(a => formatDate(a.date) === selectedDateStr);
+      filtered.sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
-      document.getElementById('todayCountBadge').innerText = `Today: ${today.length}`;
+      const countBadge = document.getElementById('todayCountBadge');
+      if (countBadge) {
+        countBadge.innerText = (selectedDateStr === todayStr)
+          ? `Today: ${filtered.length}`
+          : `${selectedDateStr}: ${filtered.length}`;
+      }
+
       const container = document.getElementById('queueList');
-      if (today.length === 0) {
-        container.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:30px 10px;">No appointments queued for today yet.</div>`;
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:#94a3b8; padding:30px 10px;">No appointments found for ${selectedDateStr}.</div>`;
         return;
       }
 
-      container.innerHTML = today.map((a, idx) => {
+      container.innerHTML = filtered.map((a, idx) => {
         const p = globalPatientCache[a.patientId] || {};
         const prefix = getMyanmarPrefix(p.age, p.sex);
         const pName = p.name ? `${prefix}${p.name}` : (a.patientName || 'Unknown');
@@ -1206,6 +1317,7 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
         document.getElementById('pDocNote').value = p.doctorNote || 'NR';
       }
       loadPatientVisitsIntoDropdown(pId, aId);
+      updatePatientStatusMobile(p.synced ? 'synced' : 'local', p.synced ? '☁️ Synced' : '🟢 Saved');
     };
 
     switchMobileTab('consultTab', document.querySelectorAll('.nav-btn')[1]);
@@ -1238,6 +1350,7 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
     tx.objectStore("patients").put(patient);
     tx.oncomplete = () => {
       globalPatientCache[pId] = patient;
+      updatePatientStatusMobile('local', '🟢 Saved Locally');
       alert("✅ Patient Profile Saved Locally!");
       pushPendingToSupabase();
     };
@@ -1276,6 +1389,7 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
     const tx = db.transaction(["appointments"], "readwrite");
     tx.objectStore("appointments").put(appt);
     tx.oncomplete = () => {
+      updateApptStatusMobile('local', '🟢 Saved Locally');
       alert("✅ Visit Saved Locally!");
       loadPatientVisitsIntoDropdown(pId, aId);
       renderQueue();
@@ -1352,14 +1466,14 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
     const url = localStorage.getItem('floca_supabase_url');
     const key = localStorage.getItem('floca_supabase_key');
     if (!url || !key || typeof supabase === 'undefined') {
-      document.getElementById('connectionStatus').innerText = "Offline Mode (No Supabase)";
+      document.getElementById('connectionStatus').innerText = "Offline Mode (No Deltabase)";
       return;
     }
 
     try {
       supabaseClient = supabase.createClient(url, key);
       document.getElementById('syncDot').style.background = '#22c55e';
-      document.getElementById('connectionStatus').innerText = "⚡ Supabase Connected";
+      document.getElementById('connectionStatus').innerText = "⚡ Deltabase Connected";
 
       supabaseClient.channel('mobile-sync')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'patients' }, payload => {
@@ -1392,11 +1506,17 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
             };
           }
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_settings' }, payload => {
-          if (payload.new && payload.new.setting_key === 'clinic_profile') {
-            localStorage.setItem('floca_clinic_profile', JSON.stringify(payload.new.setting_val));
-            CLINIC_PROFILE = Object.assign({}, DEFAULT_CLINIC_PROFILE, payload.new.setting_val);
-            updateAppHeaderAndTitle();
+
+  	.on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_settings' }, payload => {
+          if (payload.new) {
+            if (payload.new.setting_key === 'clinic_logo') {
+              if (payload.new.setting_val) localStorage.setItem('floca_clinic_logo', payload.new.setting_val);
+              injectPrintBranding();
+            } else if (payload.new.setting_key === 'clinic_profile') {
+              localStorage.setItem('floca_clinic_profile', JSON.stringify(payload.new.setting_val));
+              CLINIC_PROFILE = Object.assign({}, DEFAULT_CLINIC_PROFILE, payload.new.setting_val);
+              updateAppHeaderAndTitle();
+            }
           }
         })
         .subscribe();
@@ -1406,7 +1526,7 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
 
       window.addEventListener('online', () => {
         document.getElementById('syncDot').style.background = '#22c55e';
-        document.getElementById('connectionStatus').innerText = "⚡ Supabase Connected";
+        document.getElementById('connectionStatus').innerText = "⚡ Deltabase Connected";
         pushPendingToSupabase();
         pullSupabaseDeltas(false);
       });
@@ -1438,7 +1558,7 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
       }, 30000);
 
     } catch(err) {
-      console.warn("Supabase init error:", err);
+      console.warn("Deltabase init error:", err);
     }
   }
 
@@ -1536,7 +1656,7 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
       }
     }
     if (!supabaseClient || !db) {
-      if (userAlert) alert("Database or Supabase is not ready yet. Please check settings.");
+      if (userAlert) alert("Database or Deltabase is not ready yet. Please check settings.");
       return;
     }
 
@@ -1663,6 +1783,10 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
 
       if (sData && sData.length > 0) {
         sData.forEach(s => {
+	  if (s.setting_key === 'clinic_logo') {
+      	    if (s.setting_val) localStorage.setItem('floca_clinic_logo', s.setting_val);
+      	    injectPrintBranding();
+    	  }
           if (s.setting_key === 'clinic_profile') {
             localStorage.setItem('floca_clinic_profile', JSON.stringify(s.setting_val));
             CLINIC_PROFILE = Object.assign({}, DEFAULT_CLINIC_PROFILE, s.setting_val);
@@ -1684,9 +1808,19 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
   }
 
   function openSettingsModal() {
-    document.getElementById('cfgSupabaseUrl').value = localStorage.getItem('floca_supabase_url') || '';
-    document.getElementById('cfgSupabaseKey').value = localStorage.getItem('floca_supabase_key') || '';
-    document.getElementById('cfgGeminiKey').value = localStorage.getItem('floca_gemini_key') || '';
+    
+const savedLogo = localStorage.getItem('floca_clinic_logo');
+    const preview = document.getElementById('cfgLogoPreview');
+    if (preview) {
+      if (savedLogo) {
+        preview.src = savedLogo;
+        preview.style.display = 'inline-block';
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+    document.getElementById('cfgScriptUrl').value = localStorage.getItem('floca_script_url') || '';
+    document.getElementById('settingsFetchStatus').innerText = '';
     document.getElementById('settingsModal').style.display = 'flex';
   }
 
@@ -1694,61 +1828,103 @@ const customLogo = localStorage.getItem('floca_clinic_logo') || 'logo.png';
     document.getElementById('settingsModal').style.display = 'none';
   }
 
+  async function fetchConfigAndConnect() {
+    const scriptUrl = document.getElementById('cfgScriptUrl').value.trim();
+    const statusEl = document.getElementById('settingsFetchStatus');
+
+    if (!scriptUrl) {
+      alert("Please enter your Cold Backup URL.");
+      return;
+    }
+
+    statusEl.style.color = '#0284c7';
+    statusEl.innerText = "⏳ Fetching credentials from Cold Backup...";
+
+    try {
+      const response = await fetch(scriptUrl, { method: "GET", redirect: "follow" });
+      if (!response.ok) throw new Error("HTTP error " + response.status);
+
+      const data = await response.json();
+      if (data.result === "error") throw new Error(data.error);
+
+      // Save Cold Backup URL locally
+      localStorage.setItem('floca_script_url', scriptUrl);
+
+      // Extract credentials returned by Google Apps Script
+      if (data.credentials) {
+        if (data.credentials.supabase_url) {
+          localStorage.setItem('floca_supabase_url', data.credentials.supabase_url);
+        }
+        if (data.credentials.supabase_key) {
+          localStorage.setItem('floca_supabase_key', data.credentials.supabase_key);
+        }
+        if (data.credentials.gemini_key) {
+          localStorage.setItem('floca_gemini_key', data.credentials.gemini_key);
+        }
+      }
+
+      // Sync settings & catalogs if included in the payload
+      if (data.settings && typeof data.settings === 'object') {
+	if (data.settings.clinic_logo) {
+    	  localStorage.setItem('floca_clinic_logo', data.settings.clinic_logo);
+    	  injectPrintBranding();
+  	}
+        if (data.settings.clinic_profile) {
+          localStorage.setItem('floca_clinic_profile', JSON.stringify(data.settings.clinic_profile));
+          CLINIC_PROFILE = Object.assign({}, DEFAULT_CLINIC_PROFILE, data.settings.clinic_profile);
+          updateAppHeaderAndTitle();
+        }
+        if (data.settings.quick_pick_drugs) {
+          localStorage.setItem('floca_quick_pick_drugs', JSON.stringify(data.settings.quick_pick_drugs));
+          GLOBAL_QUICK_PICK_DRUGS = data.settings.quick_pick_drugs;
+          renderQuickPickChips();
+        }
+      }
+
+      statusEl.style.color = '#155724';
+      statusEl.innerText = "✅ Credentials retrieved successfully!";
+
+      // Initialize Deltabase sync with the freshly downloaded credentials
+      initSupabase();
+
+      setTimeout(() => {
+        closeSettingsModal();
+        alert("✅ Mobile Connected!\n\nDeltabase URL, API Key, and Gemini Key retrieved from Cold Backup.");
+      }, 700);
+
+    } catch (err) {
+      console.error(err);
+      statusEl.style.color = '#e11d48';
+      statusEl.innerText = "❌ Failed: " + err.message;
+      alert("Failed to retrieve credentials:\n" + err.message + "\n\nEnsure you have run at least one backup from your Desktop app to store credentials.");
+    }
+  }
+
 function handleLogoUpload(input) {
-  if (!input.files || !input.files[0]) return;
-  const file = input.files[0];
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
 
-  // Optional: Prevent localStorage bloat by checking file size (< 1.5MB recommended)
-  if (file.size > 1.5 * 1024 * 1024) {
-    alert("Please select a logo smaller than 1.5MB.");
-    input.value = "";
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const base64Data = e.target.result;
-    localStorage.setItem('floca_clinic_logo', base64Data);
-    
-    // Update preview in settings
-    const preview = document.getElementById('cfgLogoPreview');
-    if (preview) {
-      preview.src = base64Data;
-      preview.style.display = 'inline-block';
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Please select a logo smaller than 2MB.");
+      input.value = "";
+      return;
     }
 
-    // Push to Supabase settings if configured
-    if (typeof pushSettingToSupabase === 'function') {
-      pushSettingToSupabase('clinic_logo', base64Data);
-    }
-    
-    alert("✅ Logo updated successfully!");
-  };
-  reader.readAsDataURL(file);
-}
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64Data = e.target.result;
+      localStorage.setItem('floca_clinic_logo', base64Data);
+      
+      const preview = document.getElementById('cfgLogoPreview');
+      if (preview) {
+        preview.src = base64Data;
+        preview.style.display = 'inline-block';
+      }
 
-function removeCustomLogo() {
-  localStorage.removeItem('floca_clinic_logo');
-  const preview = document.getElementById('cfgLogoPreview');
-  if (preview) preview.src = "logo.png";
-  if (typeof pushSettingToSupabase === 'function') {
-    pushSettingToSupabase('clinic_logo', null);
-  }
-  alert("Reverted to default logo.");
-}
-
-  function saveMobileSettings() {
-    const url = document.getElementById('cfgSupabaseUrl').value.trim();
-    const key = document.getElementById('cfgSupabaseKey').value.trim();
-    const gemini = document.getElementById('cfgGeminiKey').value.trim();
-
-    if (url) localStorage.setItem('floca_supabase_url', url);
-    if (key) localStorage.setItem('floca_supabase_key', key);
-    if (gemini) localStorage.setItem('floca_gemini_key', gemini);
-
-    closeSettingsModal();
-    initSupabase();
-    alert("Parameters Saved Successfully!");
+      injectPrintBranding();
+      alert("✅ Logo updated successfully!");
+    };
+    reader.readAsDataURL(file);
   }
 
   // Print Handlers
@@ -1775,14 +1951,28 @@ function removeCustomLogo() {
     document.getElementById('cardPAgeSex').innerText = `${ageVal || '-'} yrs / ${sexVal}`;
     document.getElementById('cardPPhone').innerText = document.getElementById('pPhone').value.trim() || 'None';
     document.getElementById('cardPAddress').innerText = document.getElementById('pAddress').value.trim() || 'None';
-    document.getElementById('cardPmh').innerText = formatAsBullets(document.getElementById('pPmh').value, 'None reported');
-    document.getElementById('cardAllergy').innerText = formatAsBullets(document.getElementById('pAllergy').value, 'NKDA');
-    document.getElementById('cardCurrentMeds').innerText = formatAsBullets(document.getElementById('pCurrentMeds').value, 'None');
+
+    const rawPmh = document.getElementById('pPmh').value.trim();
+    document.getElementById('cardPmh').innerText = (!rawPmh || rawPmh.toUpperCase() === 'NR') ? 'None reported' : formatAsBullets(rawPmh, 'None reported');
+
+    const rawAllergy = document.getElementById('pAllergy').value.trim();
+    document.getElementById('cardAllergy').innerText = (!rawAllergy || rawAllergy.toUpperCase() === 'NR') ? 'NKDA' : formatAsBullets(rawAllergy, 'NKDA');
+
+    const rawMeds = document.getElementById('pCurrentMeds').value.trim();
+    document.getElementById('cardCurrentMeds').innerText = (!rawMeds || rawMeds.toUpperCase() === 'NR') ? 'None' : formatAsBullets(rawMeds, 'None');
+
     document.getElementById('cardPrintDate').innerText = formatDate(new Date());
 
-    document.body.className = 'printing-card';
-    window.print();
-    document.body.className = '';
+    document.body.classList.add('printing-card');
+    
+    // Give mobile webview render queue 100ms before calling print
+    setTimeout(() => {
+      window.print();
+      // Remove printing class only after dialog has spawned
+      setTimeout(() => {
+        document.body.classList.remove('printing-card');
+      }, 500);
+    }, 100);
   }
 
   function printPrescriptionMobile() {
@@ -1799,7 +1989,10 @@ function removeCustomLogo() {
 
     document.getElementById('rxPName').innerText = formattedName;
     document.getElementById('rxPAgeSex').innerText = `${ageVal || 'N/A'} yrs / ${sexVal}`;
-    document.getElementById('rxPAllergy').innerText = formatAsBullets(document.getElementById('pAllergy').value, 'NKDA');
+
+    const rawAllergy = document.getElementById('pAllergy').value.trim();
+    document.getElementById('rxPAllergy').innerText = (!rawAllergy || rawAllergy.toUpperCase() === 'NR') ? 'NKDA' : formatAsBullets(rawAllergy, 'NKDA');
+
     document.getElementById('rxDate').innerText = formatDate(new Date());
     document.getElementById('rxCc').innerText = document.getElementById('aCc').value || 'N/A';
     document.getElementById('rxHistory').innerText = document.getElementById('aHistory').value || 'None';
@@ -1824,9 +2017,14 @@ function removeCustomLogo() {
 
     document.getElementById('rxFollowUp').innerText = document.getElementById('aFollowUp').value || 'PRN';
 
-    document.body.className = 'printing-rx';
-    window.print();
-    document.body.className = '';
+    document.body.classList.add('printing-rx');
+
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('printing-rx');
+      }, 500);
+    }, 100);
   }
 </script>
 
