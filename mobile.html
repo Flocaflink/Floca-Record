@@ -1473,7 +1473,7 @@ function updatePatientStatusMobile(state, text) {
 
     try {
       if (supabaseClient) {
-        // Remove existing channel if re-initializing
+        // Remove existing channels if re-initializing
         supabaseClient.removeAllChannels();
       }
 
@@ -1506,7 +1506,7 @@ function updatePatientStatusMobile(state, text) {
             tx.objectStore("patients").put(patientObj);
             tx.oncomplete = () => {
               globalPatientCache[patientObj.patientId] = patientObj;
-              renderQueue(); // Re-render queue to show updated patient demographics
+              renderQueue(); // Re-render queue to reflect updated patient demographics
               const curPid = document.getElementById('pId').value;
               if (curPid === patientObj.patientId) {
                 updatePatientStatusMobile('synced', '☁️ Synced');
@@ -1543,7 +1543,7 @@ function updatePatientStatusMobile(state, text) {
             const tx = db.transaction(["appointments"], "readwrite");
             tx.objectStore("appointments").put(apptObj);
             tx.oncomplete = () => {
-              renderQueue(); // Immediately refreshes today's queue list
+              renderQueue(); // Immediately refreshes today's queue
               const curPid = document.getElementById('pId').value;
               if (curPid && curPid === apptObj.patientId) {
                 loadPatientVisitsIntoDropdown(curPid, apptObj.appointmentId);
@@ -1579,10 +1579,24 @@ function updatePatientStatusMobile(state, text) {
         }
       });
 
-      pullSupabaseDeltas(false);
-      pushPendingToSupabase();
+      // Browser Network Listeners
+      window.addEventListener('online', () => {
+        const dot = document.getElementById('syncDot');
+        const connText = document.getElementById('connectionStatus');
+        if (dot) dot.style.background = '#22c55e';
+        if (connText) connText.innerText = "⚡ Deltabase Connected";
+        pushPendingToSupabase();
+        pullSupabaseDeltas(false);
+      });
 
-      // Ensure fresh pull when switching tabs/apps on mobile
+      window.addEventListener('offline', () => {
+        const dot = document.getElementById('syncDot');
+        const connText = document.getElementById('connectionStatus');
+        if (dot) dot.style.background = '#eab308';
+        if (connText) connText.innerText = "Offline Mode";
+      });
+
+      // Catch-up triggers: auto-pull when phone screen turns on or switching back to app
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && navigator.onLine) {
           pushPendingToSupabase();
@@ -1596,7 +1610,10 @@ function updatePatientStatusMobile(state, text) {
         }
       });
 
-      // Heartbeat: sync deltas automatically every 20 seconds
+      pullSupabaseDeltas(false);
+      pushPendingToSupabase();
+
+      // Background Heartbeat: poll every 20 seconds for changes
       if (window.mobileSyncInterval) clearInterval(window.mobileSyncInterval);
       window.mobileSyncInterval = setInterval(() => {
         if (navigator.onLine) {
@@ -1604,44 +1621,6 @@ function updatePatientStatusMobile(state, text) {
           pullSupabaseDeltas(false);
         }
       }, 20000);
-
-    } catch(err) {
-      console.warn("Deltabase init error:", err);
-    }
-  }
-
-      window.addEventListener('online', () => {
-        document.getElementById('syncDot').style.background = '#22c55e';
-        document.getElementById('connectionStatus').innerText = "⚡ Deltabase Connected";
-        pushPendingToSupabase();
-        pullSupabaseDeltas(false);
-      });
-
-      window.addEventListener('offline', () => {
-        document.getElementById('syncDot').style.background = '#eab308';
-        document.getElementById('connectionStatus').innerText = "Offline Mode";
-      });
-
-      // 1. Auto-pull every time the phone is unlocked or switched back to the app
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && navigator.onLine) {
-          pushPendingToSupabase();
-          pullSupabaseDeltas(false);
-        }
-      });
-      window.addEventListener('focus', () => {
-        if (navigator.onLine) {
-          pullSupabaseDeltas(false);
-        }
-      });
-
-      // 2. Periodic bidirectional sync every 30 seconds
-      setInterval(() => {
-        if (navigator.onLine) {
-          pushPendingToSupabase();
-          pullSupabaseDeltas(false);
-        }
-      }, 30000);
 
     } catch(err) {
       console.warn("Deltabase init error:", err);
