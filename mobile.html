@@ -875,6 +875,7 @@ input[type=number] {
 
   req.onsuccess = function(e) {
     db = e.target.result;
+    window.db = db;
     document.getElementById('connectionStatus').innerText = "Local DB Active";
     loadClinicProfileFromStorage();
     updateAppHeaderAndTitle();
@@ -1471,43 +1472,88 @@ function updatePatientStatusMobile(state, text) {
     }
 
     try {
+      if (supabaseClient) {
+        // Remove existing channel if re-initializing
+        supabaseClient.removeAllChannels();
+      }
+
       supabaseClient = supabase.createClient(url, key);
       document.getElementById('syncDot').style.background = '#22c55e';
       document.getElementById('connectionStatus').innerText = "⚡ Deltabase Connected";
 
-      supabaseClient.channel('mobile-sync')
+      const channel = supabaseClient.channel('mobile-live-sync')
+        // 1. Live Patient Changes
         .on('postgres_changes', { event: '*', schema: 'public', table: 'patients' }, payload => {
           if (payload.new && db) {
             const p = payload.new;
+            const patientObj = {
+              patientId: String(p.patient_id).trim(),
+              name: p.name || "",
+              sex: p.sex || "Male",
+              birthYear: String(p.birth_year || ""),
+              age: String(p.age || ""),
+              pmh: p.pmh || "NR",
+              drugAllergy: p.drug_allergy || "NKDA",
+              currentMeds: p.current_meds || "NR",
+              doctorNote: p.doctor_note || "NR",
+              phone: p.phone || "",
+              address: p.address || "",
+              updatedAt: Number(p.updated_at) || Date.now(),
+              synced: 1
+            };
+
             const tx = db.transaction(["patients"], "readwrite");
-            tx.objectStore("patients").put({
-              patientId: p.patient_id, name: p.name, sex: p.sex, birthYear: p.birth_year,
-              age: p.age, pmh: p.pmh, drugAllergy: p.drug_allergy, currentMeds: p.current_meds,
-              doctorNote: p.doctor_note, phone: p.phone, address: p.address, updatedAt: p.updated_at, synced: 1
-            });
-            tx.oncomplete = () => updatePatientCache();
-          }
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, payload => {
-          if (payload.new && db) {
-            const a = payload.new;
-            const tx = db.transaction(["appointments"], "readwrite");
-            tx.objectStore("appointments").put({
-              appointmentId: a.appointment_id, patientId: a.patient_id, patientName: a.patient_name,
-              sex: a.sex, date: a.date, chiefComplaint: a.chief_complaint, history: a.history,
-              bp: a.bp, pr: a.pr, spo2: a.spo2, examinations: a.examinations, investigations: a.investigations,
-              diagnosis: a.diagnosis, treatments: a.treatments, followUp: a.follow_up,
-              doctorNote: a.doctor_note, updatedAt: a.updated_at, synced: 1
-            });
+            tx.objectStore("patients").put(patientObj);
             tx.oncomplete = () => {
-              renderQueue();
+              globalPatientCache[patientObj.patientId] = patientObj;
+              renderQueue(); // Re-render queue to show updated patient demographics
               const curPid = document.getElementById('pId').value;
-              if (curPid && curPid === a.patient_id) loadPatientVisitsIntoDropdown(curPid, a.appointment_id);
+              if (curPid === patientObj.patientId) {
+                updatePatientStatusMobile('synced', '☁️ Synced');
+              }
             };
           }
         })
 
-  	.on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_settings' }, payload => {
+        // 2. Live Appointment Changes
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, payload => {
+          if (payload.new && db) {
+            const a = payload.new;
+            const apptObj = {
+              appointmentId: String(a.appointment_id).trim(),
+              patientId: String(a.patient_id || "").trim(),
+              patientName: a.patient_name || "",
+              sex: a.sex || "Male",
+              date: a.date || "",
+              chiefComplaint: a.chief_complaint || "",
+              history: a.history || "",
+              bp: a.bp || "",
+              pr: a.pr || "",
+              spo2: a.spo2 || "",
+              examinations: a.examinations || "",
+              investigations: a.investigations || "NR",
+              diagnosis: a.diagnosis || "",
+              treatments: a.treatments || "",
+              followUp: a.follow_up || "PRN",
+              doctorNote: a.doctor_note || "NR",
+              updatedAt: Number(a.updated_at) || Date.now(),
+              synced: 1
+            };
+
+            const tx = db.transaction(["appointments"], "readwrite");
+            tx.objectStore("appointments").put(apptObj);
+            tx.oncomplete = () => {
+              renderQueue(); // Immediately refreshes today's queue list
+              const curPid = document.getElementById('pId').value;
+              if (curPid && curPid === apptObj.patientId) {
+                loadPatientVisitsIntoDropdown(curPid, apptObj.appointmentId);
+              }
+            };
+          }
+        })
+
+        // 3. Live Settings Changes
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_settings' }, payload => {
           if (payload.new) {
             if (payload.new.setting_key === 'clinic_logo') {
               if (payload.new.setting_val) localStorage.setItem('floca_clinic_logo', payload.new.setting_val);
@@ -1518,11 +1564,51 @@ function updatePatientStatusMobile(state, text) {
               updateAppHeaderAndTitle();
             }
           }
-        })
-        .subscribe();
+        });
+
+      // Subscribe and handle socket disconnects/reconnects
+      channel.subscribe((status) => {
+        const dot = document.getElementById('syncDot');
+        const connText = document.getElementById('connectionStatus');
+        if (status === 'SUBSCRIBED') {
+          if (dot) dot.style.background = '#22c55e';
+          if (connText) connText.innerText = "⚡ Deltabase Connected (Live)";
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          if (dot) dot.style.background = '#eab308';
+          if (connText) connText.innerText = "⚡ Reconnecting Deltabase...";
+        }
+      });
 
       pullSupabaseDeltas(false);
       pushPendingToSupabase();
+
+      // Ensure fresh pull when switching tabs/apps on mobile
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && navigator.onLine) {
+          pushPendingToSupabase();
+          pullSupabaseDeltas(false);
+        }
+      });
+
+      window.addEventListener('focus', () => {
+        if (navigator.onLine) {
+          pullSupabaseDeltas(false);
+        }
+      });
+
+      // Heartbeat: sync deltas automatically every 20 seconds
+      if (window.mobileSyncInterval) clearInterval(window.mobileSyncInterval);
+      window.mobileSyncInterval = setInterval(() => {
+        if (navigator.onLine) {
+          pushPendingToSupabase();
+          pullSupabaseDeltas(false);
+        }
+      }, 20000);
+
+    } catch(err) {
+      console.warn("Deltabase init error:", err);
+    }
+  }
 
       window.addEventListener('online', () => {
         document.getElementById('syncDot').style.background = '#22c55e';
